@@ -267,11 +267,11 @@ document.querySelectorAll(".viewtabs button").forEach(b=>b.onclick=()=>{
   const v=b.dataset.view;
   document.querySelectorAll(".viewtabs button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",String(x===b));});
   $("viewLive").hidden = v!=="live"; $("viewMonthly").hidden = v!=="monthly";
-  document.querySelector(".top-actions").style.visibility = v==="monthly"?"visible":"hidden";
+  document.querySelector(".top-actions").style.display = v==="monthly"?"":"none";
   if(v==="monthly" && window.__monthly){ window.__monthly.render(); Object.values(window.__monthly.charts).forEach(c=>c.resize()); }
   else frame(true);
 });
-document.querySelector(".top-actions").style.visibility="hidden";
+document.querySelector(".top-actions").style.display="none";
 
 backfill();
 frame(true);
