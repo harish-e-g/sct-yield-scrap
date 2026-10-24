@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 
-const STORE_KEY = "sct-yield-scrap-v2";
+const STORE_KEY = "sct-yield-scrap-v3";
 const SERIES = ["#2F5BA8","#1F9AA6","#C98A16","#8E5BB5","#5E8C31"]; // validated (first 3), light surface
 const LINE_COLORS = {"Line 1":"#2F5BA8","Line 2":"#1F9AA6"};
 const STATUS = {good:"#1E8E5A", warn:"#B7791F", crit:"#C93A3A"};
@@ -17,14 +17,15 @@ function buildDemo(){
   const months = [];
   for(let i=0;i<12;i++){const d=new Date(2025,9+i,1);months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));}
   const rms = [
-    {id:"NR", name:"Rubber Compound (NR)", rate:245},
-    {id:"CB", name:"Carbon Black N550", rate:118},
-    {id:"MS", name:"Steel Insert", rate:86}
+    {id:"RC", name:"Rubber Compound (NR)", rate:245},
+    {id:"IS", name:"Inner Metal Sleeve", rate:95},
+    {id:"OS", name:"Outer Sleeve / Bracket", rate:160},
+    {id:"BA", name:"Bonding Agent", rate:2900}
   ];
   const variants = [
-    {id:"5220", name:"5220 Mass Damper", std:{NR:0.420, CB:0.120, MS:0.650}},
-    {id:"EM310", name:"Engine Mount EM-310", std:{NR:0.580, CB:0.160, MS:0.900}},
-    {id:"BS140", name:"Bush BS-140", std:{NR:0.180, CB:0.050, MS:0.220}}
+    {id:"5220", name:"5220 Mass Damper", std:{RC:0.420, IS:0.180, OS:0.950, BA:0.0025}},
+    {id:"EM310", name:"Engine Mount EM-310", std:{RC:0.580, IS:0.300, OS:1.100, BA:0.0030}},
+    {id:"BS140", name:"Suspension Bush SB-140", std:{RC:0.160, IS:0.120, OS:0.200, BA:0.0012}}
   ];
   const vById = Object.fromEntries(variants.map(v=>[v.id,v]));
   const prod = [];
@@ -35,9 +36,10 @@ function buildDemo(){
       const rejRate = r(0.012,0.028) + (i===8&&line==="Line 1"?0.03:0);
       const rejected = Math.round(produced*rejRate);
       const good = produced - rejected;
-      const extra = {NR:r(0.045,0.075), CB:r(0.03,0.055), MS:r(0.01,0.025)};
-      if(i===8 && line==="Line 1"){extra.NR+=0.07; extra.CB+=0.04;}       // Jun-26 spike
-      if(i>=10){extra.NR-=0.012; extra.CB-=0.008;}                        // recent improvement
+      // loss over standard: rubber = flash + runner + scorched compound; metal = rejects + pre-treatment scrap; bonding agent = spray overspray + pot life
+      const extra = {RC:r(0.10,0.14), IS:r(0.006,0.012), OS:r(0.006,0.012), BA:r(0.16,0.24)};
+      if(i===8 && line==="Line 1"){extra.RC+=0.08; extra.BA+=0.10;}       // Jun-26 spike
+      if(i>=10){extra.RC-=0.02; extra.BA-=0.03;}                          // recent improvement
       const actual = {};
       rms.forEach(rm=>{actual[rm.id] = round1(produced*vById[vid].std[rm.id]*(1+extra[rm.id]));});
       prod.push({month:m,line,variant:vid,planned,good,rejected,actual});
@@ -331,6 +333,11 @@ function renderInsights(){
     else if(isFinite(c)&&c>45) items.push(["info","i",`Excess stock: ${rm.name}`,`${Math.round(c)} days of cover is tying up about ${inr(st[rm.id].closing*rate(rm.id))} in working capital.`]);});
   // 5 rejection
   rows.forEach(p=>{const rr=p.rejected/(p.good+p.rejected); if(rr>0.03) items.push(["warn","!",`High rejection on ${p.line}`,`${pct(rr,2)} of ${vById(p.variant)?.name||p.variant} parts rejected (${nf0.format(p.rejected)} pcs). Every rejected part carries its full RM weight as scrap.`]);});
+  // 5b metal recovery from NG parts
+  const nRej = rows.reduce((s,p)=>s+p.rejected,0);
+  const metalIds = S.rms.filter(r=>/sleeve|bracket|insert|metal/i.test(r.name)).map(r=>r.id);
+  if(nRej>0 && metalIds.length){ let mkg=0,minr=0; rows.forEach(p=>{const v=vById(p.variant); metalIds.forEach(id=>{const k=p.rejected*((v&&v.std[id])||0); mkg+=k; minr+=k*rate(id);});});
+    items.push(["info","↺","Metal recoverable from NG parts",`${kg(mkg)} of sleeves and brackets sit inside ${nf0.format(nRej)} rejected parts. De-bonding and reusing them, instead of selling as scrap, is worth up to ${inr(minr)} this month.`]); }
   // 6 opportunity
   const above = S.months.map(m=>agg(rowsFor(m))).filter(a=>a.scrap*100>s.mean);
   const save12 = above.reduce((acc,a)=>acc+(a.scrap-s.mean/100)*a.actual*(a.cost/(a.waste||1)),0);

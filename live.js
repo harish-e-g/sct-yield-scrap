@@ -6,22 +6,23 @@
 const SHIFT_SEC = 8*3600;
 const USL = 3.5;                      // NG % upper limit
 const LINES = [
-  {id:"Line 1", variant:"5220 Mass Damper", target:45000, baseNg:0.017, std:{NR:0.420, CB:0.120, MS:0.650}},
-  {id:"Line 2", variant:"Bush BS-140",      target:55000, baseNg:0.021, std:{NR:0.180, CB:0.050, MS:0.220}}
+  {id:"Line 1", variant:"5220 Mass Damper", target:45000, baseNg:0.017, std:{RC:0.420, IS:0.180, OS:0.950, BA:0.0025}},
+  {id:"Line 2", variant:"Suspension Bush SB-140", target:55000, baseNg:0.021, std:{RC:0.160, IS:0.120, OS:0.200, BA:0.0012}}
 ];
 const TARGET = LINES.reduce((s,l)=>s+l.target,0);
 const RMS = [
-  {id:"NR", name:"Rubber Compound (NR)", rate:245, loss:0.045, color:"#2F5BA8"},
-  {id:"CB", name:"Carbon Black N550",    rate:118, loss:0.035, color:"#1F9AA6"},
-  {id:"MS", name:"Steel Insert",         rate:86,  loss:0.012, color:"#C98A16"}
+  {id:"RC", name:"Rubber Compound (NR)",   rate:245,  loss:0.12,  color:"#2F5BA8"},  // flash, runner, scorched compound
+  {id:"IS", name:"Inner Metal Sleeve",     rate:95,   loss:0.008, color:"#1F9AA6"},  // pre-treatment rejects
+  {id:"OS", name:"Outer Sleeve / Bracket", rate:160,  loss:0.008, color:"#C98A16"},
+  {id:"BA", name:"Bonding Agent",          rate:2900, loss:0.20,  color:"#8E5BB5"}   // spray overspray, pot life
 ];
 const REASONS = [
-  ["Flash", 34, "check mould parting line and clamp pressure"],
-  ["Short fill", 18, "check compound shot weight and injection pressure"],
-  ["Bonding failure", 16, "check adhesive coat and insert pre-heat"],
-  ["Porosity / blister", 12, "check cure time and compound moisture"],
-  ["Dimensional", 11, "check mould temperature and shrinkage"],
-  ["Insert misalignment", 9, "check insert loading fixture"]
+  ["Flash / excess rubber", 30, "check mould parting line, vents and clamp pressure"],
+  ["Rubber-to-metal bond failure", 20, "check sleeve shot blasting, phosphating and bonding agent film thickness"],
+  ["Non-fill / short fill", 16, "check compound shot weight, preform size and injection pressure"],
+  ["Porosity / blister", 12, "check cure time, mould temperature and compound moisture"],
+  ["Sleeve damage / misplacement", 12, "check sleeve loading fixture and press-in force"],
+  ["Dimensional (OD / ID / height)", 10, "check post-cure shrinkage and sizing operation"]
 ];
 const STOPS = ["mould cleaning","compound batch change","insert feeder jam","die change"];
 const C = {go:"#2F5BA8", ng:"#C93A3A", good:"#1E8E5A", warn:"#B7791F", neutral:"#8C97AB"};
