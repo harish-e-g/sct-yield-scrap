@@ -57,7 +57,8 @@ function newShift(){
   const sh = shiftOf(simMs);
   S = {name:sh.name, start:sh.start, end:sh.start+SHIFT_SEC*1000, sec:0,
     lines: LINES.map(()=>({go:0, ng:0, minGo:new Array(480).fill(0), minNg:new Array(480).fill(0), reasons:new Array(REASONS.length).fill(0),
-      exc:null, stop:null, alerted:false})),
+      exc:null, stop:null, alerted:false, sGo:new Uint32Array(5760), sNg:new Uint32Array(5760),
+      rm:Object.fromEntries(RMS.map(r=>[r.id,{set:0, actual:0}]))})),
     rm: Object.fromEntries(RMS.map(r=>[r.id,{set:0, actual:0}]))};
 }
 function log(level, text, ms){ events.unshift({t:ms??simMs, level, text, fresh:true}); if(events.length>300) events.pop(); }
@@ -79,8 +80,9 @@ function stepSecond(){
     let ng=0; for(let k=0;k<n;k++) if(rand()<p) ng++;
     const go = n-ng;
     st.go+=go; st.ng+=ng; st.minGo[idx]+=go; st.minNg[idx]+=ng;
+    const b5 = Math.min(5759, Math.floor((simMs - S.start)/5000)); st.sGo[b5]+=go; st.sNg[b5]+=ng;
     for(let k=0;k<ng;k++){ const r = st.exc&&rand()<0.65? st.exc.reason : pickReason(); st.reasons[r]++; }
-    RMS.forEach(r=>{ const sd=L.std[r.id]; S.rm[r.id].set += go*sd; S.rm[r.id].actual += n*sd*(1+r.loss*(0.8+rand()*0.4)); });
+    RMS.forEach(r=>{ const sd=L.std[r.id], a=n*sd*(1+r.loss*(0.8+rand()*0.4)); S.rm[r.id].set += go*sd; S.rm[r.id].actual += a; st.rm[r.id].set += go*sd; st.rm[r.id].actual += a; });
     // USL breach alert on rolling 5 minutes
     if(st.exc && !st.alerted && idx>=1){
       const r5 = rollNg(i,5);
@@ -89,7 +91,7 @@ function stepSecond(){
   });
   simMs += 1000; S.sec++;
   if(simMs>=S.end){
-    const t=tot();
+    const t=tot(true);
     prevShift={name:S.name, total:t.go+t.ng, ng:t.ng};
     log("info", `${S.name} closed: ${nf.format(t.go+t.ng)} parts, NG ${(t.ng/(t.go+t.ng)*100).toFixed(2)}%.`, S.end);
     newShift(); log("info", `${S.name} started.`);
@@ -102,7 +104,11 @@ function rollNg(i, mins){
   const frac = Math.max(1/60, (e-s) + ((simMs - S.start)/60000 - e));   // minutes covered
   return {go,ng,n:go+ng,pct:(go+ng)?ng/(go+ng)*100:0, perMin:(go+ng)/frac};
 }
-function tot(){ return S.lines.reduce((a,l)=>({go:a.go+l.go, ng:a.ng+l.ng}),{go:0,ng:0}); }
+let sel = "all";
+const IDX = ()=> sel==="all" ? LINES.map((_,i)=>i) : [+sel];
+const tgt = ()=> IDX().reduce((s,i)=>s+LINES[i].target,0);
+function tot(all){ return (all?LINES.map((_,i)=>i):IDX()).reduce((a,i)=>({go:a.go+S.lines[i].go, ng:a.ng+S.lines[i].ng}),{go:0,ng:0}); }
+function rmOf(id){ return IDX().reduce((a,i)=>({set:a.set+S.lines[i].rm[id].set, actual:a.actual+S.lines[i].rm[id].actual}),{set:0,actual:0}); }
 
 /* ---------- Backfill from shift start to now ---------- */
 function backfill(){
@@ -114,7 +120,17 @@ function backfill(){
 
 /* ---------- Rendering ---------- */
 const charts = {};
-function upsert(id,cfg){ if(charts[id]){charts[id].data=cfg.data;charts[id].options=cfg.options;charts[id].update("none");return;} charts[id]=new Chart($(id),cfg); }
+const ANIM = {duration:550, easing:"easeOutCubic"};
+function upsert(id,cfg){
+  cfg.options.animation = ANIM;
+  const ch=charts[id];
+  if(ch){ // update in place so bars and lines glide to new values
+    ch.data.labels = cfg.data.labels;
+    cfg.data.datasets.forEach((d,k)=>{ if(ch.data.datasets[k]) Object.assign(ch.data.datasets[k], d); else ch.data.datasets.push(d); });
+    ch.data.datasets.length = cfg.data.datasets.length;
+    ch.options = cfg.options; ch.update(); return; }
+  charts[id]=new Chart($(id),cfg);
+}
 const GRID={color:"#EEF1F6"}, NOGRID={display:false};
 
 function renderHeader(){
@@ -127,19 +143,19 @@ function renderHeader(){
 }
 
 function renderKpis(){
-  const t=tot(), n=t.go+t.ng, frac=(simMs-S.start)/(SHIFT_SEC*1000);
-  const expected = TARGET*frac;
-  const r30 = LINES.map((_,i)=>rollNg(i,30)).reduce((s,r)=>s+r.perMin,0);
+  const TG=tgt(), t=tot(), n=t.go+t.ng, frac=(simMs-S.start)/(SHIFT_SEC*1000);
+  const expected = TG*frac;
+  const r30 = IDX().map(i=>rollNg(i,30)).reduce((s,r)=>s+r.perMin,0);
   const minsLeft = (S.end-simMs)/60000;
   const projected = n + r30*minsLeft;
   const ngPct = n? t.ng/n*100 : 0;
-  const r5 = LINES.map((_,i)=>rollNg(i,5)); const rate5 = r5.reduce((s,r)=>s+r.perMin,0);
-  const need = minsLeft>0? Math.max(0,TARGET-n)/minsLeft : 0;
-  let waste=0,cost=0; RMS.forEach(r=>{const w=S.rm[r.id].actual-S.rm[r.id].set; waste+=w; cost+=w*r.rate;});
+  const r5 = IDX().map(i=>rollNg(i,5)); const rate5 = r5.reduce((s,r)=>s+r.perMin,0);
+  const need = minsLeft>0? Math.max(0,TG-n)/minsLeft : 0;
+  let waste=0,cost=0; RMS.forEach(r=>{const m=rmOf(r.id), w=m.actual-m.set; waste+=w; cost+=w*r.rate;});
   const ahead = n-expected;
   const tiles = [
-    ["Shift output", nf.format(n), `<div class="prog" title="Progress vs target"><i style="width:${Math.min(100,n/TARGET*100).toFixed(1)}%"></i><b style="left:${Math.min(100,frac*100).toFixed(1)}%"></b></div>
-      <span>${(n/TARGET*100).toFixed(1)}% of 1,00,000 · <span class="delta ${ahead>=0?"good":"bad"}">${ahead>=0?"▲":"▼"} ${nf.format(Math.abs(ahead))}</span> vs plan</span>`, false, ""],
+    ["Shift output", nf.format(n), `<div class="prog" title="Progress vs target"><i style="width:${Math.min(100,n/TG*100).toFixed(1)}%"></i><b style="left:${Math.min(100,frac*100).toFixed(1)}%"></b></div>
+      <span>${(n/TG*100).toFixed(1)}% of ${nf.format(TG)} · <span class="delta ${ahead>=0?"good":"bad"}">${ahead>=0?"▲":"▼"} ${nf.format(Math.abs(ahead))}</span> vs plan</span>`, false, ""],
     ["GO parts", nf.format(t.go), `<span>Good parts this shift</span>`, false, ""],
     ["NG parts", nf.format(t.ng), `<span>Rejected this shift</span>`, true, "ng"],
     ["NG %", ngPct.toFixed(2)+"%", `<span class="delta ${ngPct>USL?"bad":"good"}">${ngPct>USL?"⚠ above":"✓ within"} USL ${USL}%</span>`, true, ngPct>USL?"ng":""],
@@ -164,7 +180,7 @@ function renderLines(){
   $("lvLines").innerHTML = LINES.map((L,i)=>{
     const st=S.lines[i], r=rollNg(i,5);
     const status = st.stop? ["warn","■ Stopped: "+st.stop.why] : r.pct>USL? ["crit","⚠ NG alert"] : ["good","● Running"];
-    return `<div class="lv-line ${status[0]==="crit"?"alert":""}">
+    return `<div class="lv-line ${status[0]==="crit"?"alert":""} ${sel===String(i)?"sel":""}" data-line="${i}" role="button" tabindex="0" title="Show only ${L.id}">
       <div class="lv-top"><div><span class="ln">${L.id}</span> &nbsp;<span class="pn">${L.variant}</span></div><span class="pill ${status[0]}">${esc(status[1])}</span></div>
       <div class="lv-stats">
         <div><div class="k">Rate</div><div class="v">${nf.format(r.perMin)}<span class="muted"> /min</span></div></div>
@@ -176,7 +192,7 @@ function renderLines(){
 
 function renderRateChart(){
   const e=curIdx(), s=Math.max(0,e-59), labels=[], go=[], ng=[];
-  for(let m=s;m<=e;m++){ labels.push(hhmm(S.start+m*60000)); go.push(S.lines.reduce((a,l)=>a+l.minGo[m],0)); ng.push(S.lines.reduce((a,l)=>a+l.minNg[m],0)); }
+  const ix=IDX(); for(let m=s;m<=e;m++){ labels.push(hhmm(S.start+m*60000)); go.push(ix.reduce((a,i)=>a+S.lines[i].minGo[m],0)); ng.push(ix.reduce((a,i)=>a+S.lines[i].minNg[m],0)); }
   upsert("lvChRate",{type:"bar",data:{labels,datasets:[
     {label:"GO",data:go,backgroundColor:C.go,borderRadius:2,borderSkipped:false,borderColor:"#fff",borderWidth:{top:1},categoryPercentage:.9,barPercentage:.95},
     {label:"NG",data:ng,backgroundColor:C.ng,borderRadius:2,borderSkipped:false,categoryPercentage:.9,barPercentage:.95}]},
@@ -184,9 +200,20 @@ function renderRateChart(){
       scales:{x:{stacked:true,grid:NOGRID,ticks:{maxTicksLimit:8,maxRotation:0}},y:{stacked:true,grid:GRID}}}});
 }
 
+function renderStream(){
+  const b=Math.min(5759, Math.floor((simMs - S.start)/5000)), s=Math.max(0,b-35), labels=[], go=[], ng=[], ix=IDX();
+  for(let k=s;k<=b;k++){ const t=S.start+k*5000; labels.push(hhmmss(t)); go.push(ix.reduce((a,i)=>a+S.lines[i].sGo[k],0)); ng.push(ix.reduce((a,i)=>a+S.lines[i].sNg[k],0)); }
+  upsert("lvChStream",{type:"bar",data:{labels,datasets:[
+    {label:"GO",data:go,backgroundColor:C.go,borderRadius:2,borderSkipped:false,borderColor:"#fff",borderWidth:{top:1},categoryPercentage:.85,barPercentage:.95},
+    {label:"NG",data:ng,backgroundColor:C.ng,borderRadius:2,borderSkipped:false,categoryPercentage:.85,barPercentage:.95}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:{mode:"index",intersect:false,callbacks:{label:c=>`${c.dataset.label}: ${nf.format(c.parsed.y)} parts`}}},
+      scales:{x:{stacked:true,grid:NOGRID,ticks:{maxTicksLimit:6,maxRotation:0}},y:{stacked:true,grid:GRID,suggestedMax:ix.reduce((a,i)=>a+LINES[i].target,0)/SHIFT_SEC*5*1.4}}}});
+  const last = go.length>1? go[go.length-2]+ng[ng.length-2] : 0;
+  $("lvStreamNow").textContent = `${nf.format(last*12)} parts/min pace in the last 5 s`;
+}
 function renderNgChart(){
   const e=curIdx(), nb=Math.floor(e/5)+1, labels=[], vals=[];
-  for(let b=0;b<nb;b++){ let g=0,n=0; for(let m=b*5;m<Math.min(b*5+5,e+1);m++){ S.lines.forEach(l=>{g+=l.minGo[m];n+=l.minNg[m];}); } labels.push(hhmm(S.start+b*300000)); vals.push(g+n? n/(g+n)*100 : null); }
+  for(let b=0;b<nb;b++){ let g=0,n=0; for(let m=b*5;m<Math.min(b*5+5,e+1);m++){ IDX().forEach(i=>{g+=S.lines[i].minGo[m];n+=S.lines[i].minNg[m];}); } labels.push(hhmm(S.start+b*300000)); vals.push(g+n? n/(g+n)*100 : null); }
   const out=vals.map(v=>v!==null&&v>USL);
   upsert("lvChNg",{type:"line",data:{labels,datasets:[
     {label:"NG %",data:vals,borderColor:C.go,borderWidth:2,pointRadius:vals.map((v,i)=>out[i]?4:0),pointBackgroundColor:C.ng,pointBorderColor:"#fff",pointBorderWidth:1.5,pointHoverRadius:5,tension:0,pointStyle:"circle"},
@@ -198,7 +225,7 @@ function renderNgChart(){
 }
 
 function renderReasons(){
-  const counts = REASONS.map((r,k)=>[r[0], S.lines.reduce((a,l)=>a+l.reasons[k],0)]).sort((a,b)=>b[1]-a[1]);
+  const counts = REASONS.map((r,k)=>[r[0], IDX().reduce((a,i)=>a+S.lines[i].reasons[k],0)]).sort((a,b)=>b[1]-a[1]);
   const total = counts.reduce((s,c)=>s+c[1],0)||1;
   upsert("lvChReason",{type:"bar",data:{labels:counts.map(c=>c[0]),datasets:[{label:"NG parts",data:counts.map(c=>c[1]),backgroundColor:C.go,borderRadius:4,borderSkipped:"start",maxBarThickness:16}]},
     options:{indexAxis:"y",animation:false,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${nf.format(c.parsed.x)} parts (${(c.parsed.x/total*100).toFixed(1)}%)`}}},
@@ -207,9 +234,9 @@ function renderReasons(){
 
 function renderRm(){
   let tw=0,tc=0;
-  const rows = RMS.map(r=>{const m=S.rm[r.id], w=m.actual-m.set, c=w*r.rate; tw+=w; tc+=c;
+  const rows = RMS.map(r=>{const m=rmOf(r.id), w=m.actual-m.set, c=w*r.rate; tw+=w; tc+=c;
     return `<tr><td><span class="rm-name"><span class="sw" style="background:${r.color}"></span>${r.name}</span></td><td>${nf.format(m.set)}</td><td>${nf.format(m.actual)}</td><td><b>${nf.format(w)}</b></td><td>${inr(c)}</td></tr>`;}).join("");
-  const ta = RMS.reduce((s,r)=>s+S.rm[r.id].actual,0), ts = RMS.reduce((s,r)=>s+S.rm[r.id].set,0);
+  const ta = RMS.reduce((s,r)=>s+rmOf(r.id).actual,0), ts = RMS.reduce((s,r)=>s+rmOf(r.id).set,0);
   $("lvRm").innerHTML = `<div class="table-wrap"><table class="stock-table"><thead><tr><th>Raw material</th><th>Set kg</th><th>Actual kg</th><th>Wastage kg</th><th>Cost</th></tr></thead><tbody>${rows}
     <tr><td><b>Total</b></td><td><b>${nf.format(ts)}</b></td><td><b>${nf.format(ta)}</b></td><td><b>${nf.format(tw)}</b></td><td><b>${inr(tc)}</b></td></tr></tbody></table></div>
     <p class="chart-foot">Material yield this shift <b>${ta?(ts/ta*100).toFixed(1):"0.0"}%</b>. Set = GO parts × standard kg per part; wastage = actual − set.</p>`;
@@ -247,7 +274,8 @@ function renderEvents(){
 /* ---------- Loop ---------- */
 let lastInsight = 0, lastEventsLen = -1;
 function frame(full){
-  renderHeader(); renderKpis(); renderLines(); renderRateChart(); renderNgChart(); renderReasons(); renderRm();
+  renderHeader(); renderKpis(); renderLines(); renderStream(); renderRateChart(); renderNgChart(); renderReasons(); renderRm();
+  document.querySelectorAll("#lvSel button").forEach(x=>x.classList.toggle("on",x.dataset.sel===sel));
   const now=performance.now();
   if(full || now-lastInsight>10000){ renderInsights(); lastInsight=now; }
   if(full || events.length!==lastEventsLen || events.some(e=>e.fresh)){ renderEvents(); lastEventsLen=events.length; }
@@ -261,6 +289,11 @@ function tick(){
 $("lvSpeed").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; speed=+b.dataset.sp;
   document.querySelectorAll("#lvSpeed button").forEach(x=>x.classList.toggle("on",x===b)); log("info",`Simulation speed set to ${speed}x.`); frame(true);});
 $("lvPause").onclick=e=>{paused=!paused; e.target.textContent=paused?"Resume":"Pause"; lastReal=performance.now(); frame(true);};
+
+function setSel(v){ sel = (sel===v && v!=="all")? "all" : v; frame(true); }
+$("lvSel").addEventListener("click",e=>{const b=e.target.closest("button"); if(b) setSel(b.dataset.sel);});
+$("lvLines").addEventListener("click",e=>{const c=e.target.closest("[data-line]"); if(c) setSel(c.dataset.line);});
+$("lvLines").addEventListener("keydown",e=>{const c=e.target.closest("[data-line]"); if(c&&(e.key==="Enter"||e.key===" ")){e.preventDefault();setSel(c.dataset.line);}});
 
 /* ---------- View tabs ---------- */
 document.querySelectorAll(".viewtabs button").forEach(b=>b.onclick=()=>{

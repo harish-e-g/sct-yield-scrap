@@ -40,6 +40,12 @@
     </div>
     <div class="shift-clock"><span class="muted">Clock</span> <b id="lvClock">--:--:--</b> <span class="muted" id="lvElapsed"></span></div>
     <div class="shift-ctrl">
+      <span class="muted">Show</span>
+      <div class="seg" role="group" aria-label="Line filter" id="lvSel">
+        <button data-sel="all" class="on">All lines</button><button data-sel="0">Line 1</button><button data-sel="1">Line 2</button>
+      </div>
+    </div>
+    <div class="shift-ctrl">
       <span class="muted">Speed</span>
       <div class="seg" role="group" aria-label="Simulation speed" id="lvSpeed">
         <button data-sp="1" class="on">1x</button><button data-sp="10">10x</button><button data-sp="60">60x</button>
@@ -57,9 +63,15 @@
         <div class="panel-head"><h2>Lines right now</h2><span class="muted">Last 5 minutes</span></div>
         <div class="lines" id="lvLines"></div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h2>Output per minute, GO vs NG</h2><span class="muted">Last 60 minutes</span></div>
-        <div class="chart-box tall"><canvas id="lvChRate" aria-label="Parts per minute, GO and NG, last 60 minutes"></canvas></div>
+      <div class="col-right">
+        <div class="panel">
+          <div class="panel-head"><h2><span class="live-dot" aria-hidden="true"></span>Live stream, GO vs NG</h2><span class="muted" id="lvStreamNow">Every 5 seconds, last 3 minutes</span></div>
+          <div class="chart-box"><canvas id="lvChStream" aria-label="GO and NG parts every 5 seconds, last 3 minutes"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Output per minute, GO vs NG</h2><span class="muted">Last 60 minutes</span></div>
+          <div class="chart-box"><canvas id="lvChRate" aria-label="Parts per minute, GO and NG, last 60 minutes"></canvas></div>
+        </div>
       </div>
     </section>
 

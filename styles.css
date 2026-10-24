@@ -255,3 +255,8 @@ dialog h2{font-size:17px;color:var(--navy);margin-bottom:10px}
   .shiftbar,.feed-note{padding-left:16px;padding-right:16px}
   .lv-stats{grid-template-columns:1fr 1fr}
 }
+.lv-line{cursor:pointer;transition:border-color .2s, box-shadow .2s}
+.lv-line:hover{border-color:#B9C6DA}
+.lv-line.sel{border-color:var(--navy);box-shadow:0 0 0 2px rgba(10,31,68,.12)}
+.lines .lv-line:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.kpi .val{transition:color .3s}
