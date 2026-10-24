@@ -62,7 +62,7 @@ function buildDemo(){
 let S = load() || buildDemo();
 const ui = {mode:"month", from:null, month:S.months[S.months.length-1], line:"all", variant:"all", rm:"all", wiWaste:20, wiPrice:0, tab:"prod"};
 
-function load(){try{const t=localStorage.getItem(STORE_KEY);return t?JSON.parse(t):null;}catch(e){return null;}}
+function load(){if(window.__SEED_STATE) return window.__SEED_STATE; try{const t=localStorage.getItem(STORE_KEY);return t?JSON.parse(t):null;}catch(e){return null;}}
 function save(){try{localStorage.setItem(STORE_KEY, JSON.stringify(S));}catch(e){}}
 
 /* ---------- Helpers ---------- */
@@ -528,5 +528,26 @@ function render(withDrawer=true){
   if(withDrawer && $("drawer").classList.contains("open")) renderDrawer();
 }
 render();
-window.__monthly={charts,render};
+function exportData(){
+  const r1=x=>Math.round(x*10)/10, rows=rowsPeriod(), a=agg(rows), pm=periodMonths();
+  const filt=[ui.line==="all"?"All lines":ui.line, ui.variant==="all"?"All variants":(vById(ui.variant)?.name||ui.variant), ui.rm==="all"?"All raw materials":(rmById(ui.rm)?.name||ui.rm)].join(" | ");
+  const summary=[
+    ["Report","Yield & Scrap Management, Monthly analysis"],["Prepared for","Sujan Continental, Pune"],["Prepared by","Prowesstics IT Services Pvt. Ltd."],
+    ["Period",periodLabel()],["Filters",filt],["Generated",new Date().toLocaleString("en-IN")],
+    ["CAUTION","DEMO DASHBOARD. All figures are simulated for illustration only and do not represent actual plant data."],[],
+    ["Metric","Value"],["Material yield %",r1(a.yield*100)],["Scrap %",r1(a.scrap*100)],["Wastage kg",Math.round(a.waste)],["Scrap cost INR",Math.round(a.cost)],
+    ["Planned parts",a.planned],["Good parts",a.good],["Rejected parts",a.rejected],["Rejection rate %",Math.round(a.rejRate*10000)/100],["Plan attainment %",r1(a.attain*100)]];
+  const lines=[["Line","Variants","Raw material","Set kg","Actual kg","Wastage kg","Scrap %","Scrap cost INR"]];
+  [...new Set(rows.map(r=>r.line))].sort().forEach(ln=>{const rs=rows.filter(r=>r.line===ln), g=agg(rs), vs=[...new Set(rs.map(r=>vById(r.variant)?.name||r.variant))].join(", ");
+    rmList().forEach(id=>{const b=g.byRm[id]; lines.push([ln,vs,rmById(id).name,r1(b.set),r1(b.actual),r1(b.waste),b.actual?r1(b.waste/b.actual*100):0,Math.round(b.cost)]);});});
+  const ch=stockChain(), stock=[["Raw material","Opening kg","Inward kg","Consumed kg","Closing kg","Cover days","Rate INR/kg"]];
+  S.rms.forEach(rm=>{const f=ch[pm[0]][rm.id], l=ch[pm[pm.length-1]][rm.id];
+    stock.push([rm.name,Math.round(f.opening),Math.round(pm.reduce((t,m)=>t+ch[m][rm.id].inward,0)),Math.round(pm.reduce((t,m)=>t+ch[m][rm.id].consumed,0)),Math.round(l.closing),isFinite(l.cover)?Math.round(l.cover):"",rm.rate]);});
+  const s=spcSeries(), trend=[["Month","In period","Good parts","Rejected","Set kg","Actual kg","Wastage kg","Scrap %","Scrap cost INR","USL %","Average %","LSL %"]];
+  S.months.forEach(m=>{const g=agg(rowsFor(m)); trend.push([monthLabel(m),pm.includes(m)?"Yes":"",g.good,g.rejected,Math.round(g.set),Math.round(g.actual),Math.round(g.waste),isFinite(g.scrap)?Math.round(g.scrap*10000)/100:"",Math.round(g.cost),r1(s.usl),r1(s.mean),r1(s.lsl)]);});
+  const data=[["Month","Line","Variant","Raw material","Planned","Good parts","Rejected","Set kg","Actual kg","Wastage kg","Scrap %","Scrap cost INR"]];
+  pm.forEach(m=>rowsFor(m).forEach(p=>{const g=agg([p]); rmList().forEach(id=>{const b=g.byRm[id]; data.push([monthLabel(m),p.line,vById(p.variant)?.name||p.variant,rmById(id).name,p.planned,p.good,p.rejected,r1(b.set),r1(b.actual),r1(b.waste),b.actual?Math.round(b.waste/b.actual*10000)/100:0,Math.round(b.cost)]);});}));
+  return {title:"Monthly analysis", period:periodLabel(), sheets:[["Summary",summary],["Lines",lines],["RM Stock",stock],["Monthly Trend",trend],["Detail Data",data]]};
+}
+window.__monthly={charts,render,exportData,getState:()=>S};
 })();

@@ -308,6 +308,25 @@ document.querySelectorAll(".viewtabs button").forEach(b=>b.onclick=()=>{
 });
 document.querySelector(".top-actions").style.display="none";
 
+function exportData(){
+  const t=tot(), n=t.go+t.ng, ix=IDX(), e=curIdx();
+  let waste=0,cost=0; RMS.forEach(r=>{const m=rmOf(r.id); waste+=m.actual-m.set; cost+=(m.actual-m.set)*r.rate;});
+  const summary=[["Report","Yield & Scrap Management, Live shift"],["Prepared for","Sujan Continental, Pune"],["Prepared by","Prowesstics IT Services Pvt. Ltd."],
+    ["Shift",`${S.name} (${hhmm(S.start)} to ${hhmm(S.end)} IST)`],["Snapshot time",hhmmss(simMs)+" IST"],["Lines",sel==="all"?"All lines":LINES[+sel].id],
+    ["CAUTION","DEMO DASHBOARD. Simulated live feed for illustration only. Not actual plant data."],[],
+    ["Metric","Value"],["Shift target parts",tgt()],["Parts produced",n],["GO parts",t.go],["NG parts",t.ng],["NG %",n?Math.round(t.ng/n*10000)/100:0],
+    ["Run rate parts/min (5 min)",Math.round(ix.map(i=>rollNg(i,5)).reduce((s,r)=>s+r.perMin,0))],["RM wasted kg",Math.round(waste)],["Scrap cost INR",Math.round(cost)],["USL NG %",USL]];
+  const head=["Time"]; ix.forEach(i=>head.push(LINES[i].id+" GO",LINES[i].id+" NG")); const perMin=[head];
+  for(let m=0;m<=e;m++){ const row=[hhmm(S.start+m*60000)]; ix.forEach(i=>row.push(S.lines[i].minGo[m],S.lines[i].minNg[m])); perMin.push(row); }
+  const totNg=t.ng||1, reasons=[["NG reason","Parts","Share %"]];
+  REASONS.map((r,k)=>[r[0],ix.reduce((a,i)=>a+S.lines[i].reasons[k],0)]).sort((a,b)=>b[1]-a[1]).forEach(([nm,c])=>reasons.push([nm,c,Math.round(c/totNg*1000)/10]));
+  const rm=[["Raw material","Set kg","Actual kg","Wastage kg","Rate INR/kg","Scrap cost INR"]];
+  RMS.forEach(r=>{const m=rmOf(r.id); rm.push([r.name,Math.round(m.set*10)/10,Math.round(m.actual*10)/10,Math.round((m.actual-m.set)*10)/10,r.rate,Math.round((m.actual-m.set)*r.rate)]);});
+  const ev=[["Time","Level","Event"]]; events.forEach(x=>ev.push([hhmmss(x.t),x.level,x.text]));
+  return {title:"Live shift", period:`${S.name}, ${hhmmss(simMs)} IST`, sheets:[["Summary",summary],["Per Minute",perMin],["NG Reasons",reasons],["RM Consumption",rm],["Event Log",ev]]};
+}
+window.__live={exportData};
+
 backfill();
 frame(true);
 setInterval(tick, 1000);
