@@ -72,8 +72,8 @@ async function pdf(){
     return {url:c.toDataURL("image/png"), w:mmH*c.width/c.height, h:mmH};
   }
   function put(img, x, y, align){ doc.addImage(img.url,"PNG", align==="right"? x-img.w : align==="center"? x-img.w/2 : x, y, img.w, img.h); }
-  const ribbon=T("DEMO DASHBOARD  |  CAUTION: all figures are simulated for illustration only and do not represent actual Sujan Continental plant data.",4.6,"#0A1F44",700);
-  const title=T(`Yield & Scrap Management: ${d.title}`,8,"#FFFFFF",700);
+  const ribbon=T("DEMO DASHBOARD  |  CAUTION: all figures are simulated for illustration only and do not represent actual Sujan Continental plant data.",4.6,"#0A1F44",600);
+  const title=T(`Yield & Scrap Management: ${d.title}`,8,"#FFFFFF",600);
   const sub=T(`${d.period}   |   Generated ${new Date().toLocaleString("en-IN")}`,4.6,"#B9C4D8",400);
   const foot=T("Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan Continental, Pune. Demo dashboard for discussion; simulated data.",3.6,"#6B7890",400);
   function header(first){

@@ -219,9 +219,14 @@ function renderKpis(){
     ["Rejection rate", pct(a.rejRate,2), deltaHtml(a.rejRate,P("rejRate"),true,x=>(x*100).toFixed(2)+" pts"), false]
   ];
   const all=S.months.map(m=>agg(rowsFor(m))), hi=new Set(periodMonths().map(m=>S.months.indexOf(m)));
-  const sp=[ VIZ.spark(all.map(x=>x.yield*100),"#1F9AA6",hi), VIZ.spark(all.map(x=>x.scrap*100),"#C98A16",hi), VIZ.spark(all.map(x=>x.waste),"#2F5BA8",hi),
-    VIZ.spark(all.map(x=>x.cost),"#C98A16",hi), VIZ.spark(all.map(x=>x.good),"#2F5BA8",hi), VIZ.spark(all.map(x=>x.rejRate*100),STATUS.crit,hi) ];
-  $("kpis").innerHTML = tiles.map(([l,v,s,hl],k)=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s}</div>${sp[k]}<div class="spark-cap">12-month trend · dots = selected period</div></div>`).join("");
+  const ml=S.months.map(monthLabel), x0=ml[0], x1=ml[ml.length-1];
+  const avg=arr=>{const f=arr.filter(x=>isFinite(x));return f.reduce((s,x)=>s+x,0)/(f.length||1);};
+  const P2=v=>v.toFixed(2)+"%", P1=v=>v.toFixed(1)+"%", KG=v=>nf0.format(Math.round(v))+" kg", N0=v=>nf0.format(Math.round(v));
+  const mk=(arr,c,cap,fmt)=>VIZ.spark(arr,c,{caption:cap,x0,x1,fmt,tips:ml,hi,ref:avg(arr),refLabel:"Avg"});
+  const sp=[ mk(all.map(x=>x.yield*100),"#1F9AA6","Material yield by month",P1), mk(all.map(x=>x.scrap*100),"#C98A16","Scrap % by month",P2),
+    mk(all.map(x=>x.waste),"#2F5BA8","Wastage kg by month",KG), mk(all.map(x=>x.cost),"#C98A16","Scrap cost by month",inr),
+    mk(all.map(x=>x.good),"#2F5BA8","Good parts by month",N0), mk(all.map(x=>x.rejRate*100),STATUS.crit,"Rejection rate by month",P2) ];
+  $("kpis").innerHTML = tiles.map(([l,v,s,hl],k)=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s}</div>${sp[k]}</div>`).join("");
 }
 
 /* ---------- Production details (line cards) ---------- */
@@ -293,6 +298,8 @@ Chart.defaults.color = "#44526B";
 Chart.defaults.plugins.tooltip.backgroundColor = "#0A1F44";
 Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 8;
+Chart.defaults.plugins.tooltip.titleFont = {weight:"600"};
+Chart.defaults.plugins.tooltip.bodyFont = {weight:"400"};
 Chart.defaults.plugins.legend.labels.boxWidth = 10;
 Chart.defaults.plugins.legend.labels.boxHeight = 10;
 Chart.defaults.plugins.legend.labels.useBorderRadius = true;
@@ -322,7 +329,7 @@ function renderSpc(){
     scales:{y:{grid:GRID,ticks:{callback:v=>v+"%"},suggestedMin:0},x:{grid:NOGRID}}}});
   const breaches = s.vals.map((v,i)=>out[i]?monthLabel(S.months[i]):null).filter(Boolean);
   $("spcFoot").innerHTML = `Average <b>${s.mean.toFixed(2)}%</b> · USL <b>${s.usl.toFixed(2)}%</b> · LSL <b>${s.lsl.toFixed(2)}%</b>` +
-    (breaches.length? ` · <span style="color:${STATUS.crit};font-weight:700">⚠ Out of limits: ${breaches.join(", ")}</span>` : ` · <span style="color:${STATUS.good};font-weight:700">✓ All months within limits</span>`);
+    (breaches.length? ` · <span style="color:${STATUS.crit};font-weight:600">⚠ Out of limits: ${breaches.join(", ")}</span>` : ` · <span style="color:${STATUS.good};font-weight:600">✓ All months within limits</span>`);
 }
 
 const cumOn = ()=> ui.mode==="cum" && periodMonths().length>1;
@@ -579,8 +586,8 @@ $("fileIn").onchange=async e=>{
       const o=r["Opening kg (first month only)"]; if(o!==""&&m===N.months[0]) N.stock.opening[id]=+o||0;});
     if(!N.months.length) throw new Error("No valid months found. Use YYYY-MM, e.g. 2026-09.");
     S=N; save(); ui.month=S.months[S.months.length-1]; ui.line=ui.variant=ui.rm="all"; render();
-    $("uploadMsg").innerHTML=`<span style="color:${STATUS.good};font-weight:700">✓ Loaded ${N.prod.length} line-months, ${N.rms.length} raw materials, ${N.variants.length} variants.</span>`;
-  }catch(err){$("uploadMsg").innerHTML=`<span style="color:${STATUS.crit};font-weight:700">Could not read the file: ${esc(err.message)}</span>`;}
+    $("uploadMsg").innerHTML=`<span style="color:${STATUS.good};font-weight:600">✓ Loaded ${N.prod.length} line-months, ${N.rms.length} raw materials, ${N.variants.length} variants.</span>`;
+  }catch(err){$("uploadMsg").innerHTML=`<span style="color:${STATUS.crit};font-weight:600">Could not read the file: ${esc(err.message)}</span>`;}
   e.target.value="";
 };
 function normMonth(v){

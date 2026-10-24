@@ -165,18 +165,26 @@ function renderKpis(){
   for(let m=s2;m<=e2;m++){ M.push({go:ix.reduce((a,i)=>a+S.lines[i].minGo[m],0), ng:ix.reduce((a,i)=>a+S.lines[i].minNg[m],0), c:ix.reduce((a,i)=>a+S.lines[i].minCost[m],0)}); }
   let cum=0; const cumOut=[]; for(let m=0;m<=e2;m++){ cum+=ix.reduce((a,i)=>a+S.lines[i].minGo[m]+S.lines[i].minNg[m],0); if(m>=s2) cumOut.push(cum); }
   let cc=0; const cumCost=[]; for(let m=0;m<=e2;m++){ cc+=ix.reduce((a,i)=>a+S.lines[i].minCost[m],0); if(m>=s2) cumCost.push(cc); }
-  const sp=[ VIZ.spark(cumOut,"#2F5BA8"), VIZ.spark(M.map(x=>x.go),"#2F5BA8",null,{zero:true}), VIZ.spark(M.map(x=>x.ng),C.ng,null,{zero:true}),
-    VIZ.spark(M.map(x=>x.go+x.ng? x.ng/(x.go+x.ng)*100:null), ngPct>USL?C.ng:"#1F9AA6"), VIZ.spark(M.map(x=>x.go+x.ng),"#1F9AA6",null,{zero:true}), VIZ.spark(cumCost,"#C98A16") ];
+  const tl=[]; for(let m=s2;m<=e2;m++) tl.push(hhmm(S.start+m*60000));
+  const x0=tl[0], x1="Now", n0=v=>nf.format(Math.round(v)), p2=v=>v.toFixed(2)+"%";
+  const planMin=TG/480;
+  const sp=[ VIZ.spark(cumOut,"#2F5BA8",{caption:"Cumulative output, last 30 min",x0,x1,fmt:n0,tips:tl}),
+    VIZ.spark(M.map(x=>x.go),"#2F5BA8",{caption:"GO parts per minute",x0,x1,fmt:n0,tips:tl,ref:planMin*(1-USL/100),refLabel:"Plan"}),
+    VIZ.spark(M.map(x=>x.ng),C.ng,{caption:"NG parts per minute",x0,x1,fmt:n0,tips:tl,ref:planMin*USL/100,refLabel:"Limit"}),
+    VIZ.spark(M.map(x=>x.go+x.ng? x.ng/(x.go+x.ng)*100:null), ngPct>USL?C.ng:"#1F9AA6",{caption:"NG % per minute",x0,x1,fmt:p2,tips:tl,ref:USL,refLabel:"USL"}),
+    VIZ.spark(M.map(x=>x.go+x.ng),"#1F9AA6",{caption:"Parts per minute",x0,x1,fmt:n0,tips:tl,ref:planMin,refLabel:"Plan"}),
+    VIZ.spark(cumCost,"#C98A16",{caption:"Cumulative scrap cost",x0,x1,fmt:inr,tips:tl}) ];
   $("lvKpis").innerHTML = tiles.map(([l,v,s,hl,cls],k)=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val ${cls}">${v}</div><div class="sub">${s}</div>${sp[k]}</div>`).join("");
   // gauges
   const att = expected? n/expected*100 : 100, fpy = n? t.go/n*100 : 100;
   let ts=0,ta=0; RMS.forEach(r=>{const m=rmOf(r.id); ts+=m.set; ta+=m.actual;}); const my = ta? ts/ta*100 : 100;
-  const col=(v,g,w)=> v>=g? "#1E8E5A" : v>=w? "#B7791F" : "#C93A3A";
+  const pc=x=>Math.round(x)+"%", p1=x=>x.toFixed(1)+"%";
+  const spd=rate5/(TG/480)*100;
   $("lvGauges").innerHTML =
-    VIZ.gauge(Math.min(100,att), col(att,98,92), "Plan attainment", att.toFixed(0)+"%", `${nf.format(n)} of ${nf.format(Math.round(expected))} due by now`, 100) +
-    VIZ.gauge(fpy, col(fpy,100-USL,100-USL*1.5), "First-pass yield (GO %)", fpy.toFixed(1)+"%", `Target ≥ ${(100-USL).toFixed(1)}%`, 100-USL) +
-    VIZ.gauge(my, col(my,93,90), "Material yield", my.toFixed(1)+"%", "RM in good parts ÷ RM issued", 93) +
-    VIZ.gauge(Math.min(100, rate5/(TG/480)*100), col(rate5/(TG/480)*100,98,90), "Speed vs plan", (rate5/(TG/480)*100).toFixed(0)+"%", `${nf.format(rate5)} vs ${nf.format(TG/480)} parts/min`, 100);
+    VIZ.gauge({min:50,max:120,value:att,target:100,zones:[[50,92,"bad"],[92,98,"warn"],[98,120,"good"]],label:"Plan attainment",valueText:pc(att),fmt:pc,dfmt:d=>Math.round(d)+" pts",sub:`${nf.format(n)} of ${nf.format(Math.round(expected))} parts due by now`}) +
+    VIZ.gauge({min:90,max:100,value:fpy,target:100-USL,zones:[[90,100-USL*1.5,"bad"],[100-USL*1.5,100-USL,"warn"],[100-USL,100,"good"]],label:"First-pass yield (GO %)",valueText:p1(fpy),fmt:x=>x+"%",dfmt:d=>d.toFixed(1)+" pts",sub:`${nf.format(t.go)} GO of ${nf.format(n)} parts`}) +
+    VIZ.gauge({min:85,max:100,value:my,target:93,zones:[[85,90,"bad"],[90,93,"warn"],[93,100,"good"]],label:"Material yield",valueText:p1(my),fmt:x=>x+"%",dfmt:d=>d.toFixed(1)+" pts",sub:"RM in good parts ÷ RM issued"}) +
+    VIZ.gauge({min:50,max:120,value:spd,target:100,zones:[[50,90,"bad"],[90,98,"warn"],[98,120,"good"]],label:"Speed vs plan (5 min)",valueText:pc(spd),fmt:pc,dfmt:d=>Math.round(d)+" pts",sub:`${nf.format(rate5)} vs ${nf.format(TG/480)} parts/min`});
 }
 
 function spark(i){
@@ -235,7 +243,7 @@ function renderNgChart(){
     options:{animation:false,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y==null?"-":c.parsed.y.toFixed(2)+"%"}`}}},
       scales:{x:{grid:NOGRID,ticks:{maxTicksLimit:8,maxRotation:0}},y:{grid:GRID,suggestedMin:0,suggestedMax:USL*1.6,ticks:{callback:v=>v+"%"}}}}});
   const nOut=out.filter(Boolean).length;
-  $("lvNgFoot").innerHTML = nOut? `<span style="color:${C.ng};font-weight:700">⚠ ${nOut} five-minute window${nOut>1?"s":""} above USL this shift</span>` : `<span style="color:${C.good};font-weight:700">✓ No window above USL this shift</span>`;
+  $("lvNgFoot").innerHTML = nOut? `<span style="color:${C.ng};font-weight:600">⚠ ${nOut} five-minute window${nOut>1?"s":""} above USL this shift</span>` : `<span style="color:${C.good};font-weight:600">✓ No window above USL this shift</span>`;
 }
 
 function renderReasons(){

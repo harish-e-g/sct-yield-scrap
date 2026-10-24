@@ -4,7 +4,7 @@
 <style>
 @font-face{font-family:"Nunito Sans";font-weight:400;src:url(../assets/fonts/nunito-sans-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Nunito Sans";font-weight:600;src:url(../assets/fonts/nunito-sans-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:700;src:url(../assets/fonts/nunito-sans-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:600;src:url(../assets/fonts/nunito-sans-latin-700-normal.woff2) format("woff2")}
 :root{--ink:#1F2A37;--ink2:#4B5563;--ink3:#7B8494;--teal:#2A9DA8;--teal2:#5BB4BC;--gold:#E8B452;--gold2:#C98A16;--ng:#D9534F;--good:#1E8E5A}
 *{box-sizing:border-box;margin:0}
 html,body{background:#ddd}
@@ -12,37 +12,46 @@ body{font-family:"Avenir Next","Avenir","Nunito Sans",Calibri,sans-serif;color:v
 .card{width:1200px;height:630px;position:relative;overflow:hidden}
 .pwt{height:30px;display:block}
 .sct{height:26px;display:block}
-.pill{display:inline-block;background:var(--gold);color:#3A2A08;font-weight:700;font-size:13px;letter-spacing:.14em;padding:6px 13px;border-radius:999px}
-h1{font-weight:700;letter-spacing:-.01em;line-height:1.06}
+.pill{display:inline-block;background:var(--gold);color:#3A2A08;font-weight:600;font-size:13px;letter-spacing:.14em;padding:6px 13px;border-radius:999px}
+h1{font-weight:600;letter-spacing:-.01em;line-height:1.06}
 h1 em{font-style:normal;color:var(--teal)}
 .lead{color:var(--ink2);line-height:1.42}
 .chips{display:flex;gap:9px;flex-wrap:wrap}
 .chips span{border:1px solid #E3DCCB;background:#fff;border-radius:999px;padding:7px 13px;font-size:14.5px;color:var(--ink2);font-weight:600}
-.tag{display:inline-block;border:1px solid #C98A16;color:#8A5E0B;font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:6px 12px;border-radius:6px;background:rgba(255,255,255,.6)}
-.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#2A9DA8}
+.tag{display:inline-block;border:1px solid #C98A16;color:#8A5E0B;font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:6px 12px;border-radius:6px;background:rgba(255,255,255,.6)}
+.eyebrow{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#2A9DA8}
 .prep{display:flex;align-items:center;gap:12px}
-.prep small{font-size:12px;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;font-weight:700}
+.prep small{font-size:12px;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;font-weight:600}
 /* mini dashboard */
 .dash{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(60,48,20,.16),0 2px 6px rgba(60,48,20,.06);padding:18px;border:1px solid #EFE8D8}
 .dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .dh b{font-size:15px}
-.live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#14814A;background:#E8F8EF;border-radius:999px;padding:4px 10px;letter-spacing:.08em}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#14814A;background:#E8F8EF;border-radius:999px;padding:4px 10px;letter-spacing:.08em}
 .live i{width:7px;height:7px;border-radius:50%;background:#2ECC71}
 .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-.kp div{border:1px solid #EEF0F3;border-radius:11px;padding:9px 11px;position:relative;overflow:hidden}
-.kp div::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal2)}
-.kp div.g::before{background:var(--gold)}
-.kp small{font-size:10px;letter-spacing:.08em;color:var(--ink3);font-weight:700;text-transform:uppercase}
-.kp b{display:block;font-size:21px;margin-top:2px}
+.kp>div{border:1px solid #EEF0F3;border-radius:11px;padding:9px 11px;position:relative;overflow:hidden}
+.kp>div::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal2)}
+.kp>div.g::before{background:var(--gold)}
+.kp small{font-size:10px;letter-spacing:.08em;color:var(--ink3);font-weight:600;text-transform:uppercase}
+.kp b{display:block;font-size:20px;margin-top:2px}
 .kp b.ng{color:var(--ng)}
-.kp svg{display:block;width:100%;height:24px;margin-top:3px}
+
 .row{display:grid;grid-template-columns:1.35fr 1fr;gap:10px;margin-top:10px}
 .box{border:1px solid #EEF0F3;border-radius:11px;padding:10px 12px}
-.box small{font-size:11px;font-weight:700;color:var(--ink2)}
+.box small{font-size:11px;font-weight:600;color:var(--ink2)}
 .gauge svg{width:100%;height:auto;display:block}
-.g-num{font-family:"Avenir Next","Avenir","Nunito Sans",sans-serif;font-size:28px;font-weight:700;fill:var(--ink)}
-.g-lbl{font-size:11px;font-weight:700;color:var(--ink2);text-align:center;margin-top:-4px}
+.g-num{font-family:"Avenir Next","Avenir","Nunito Sans",sans-serif;font-size:28px;font-weight:600;fill:var(--ink)}
+.g-lbl{font-size:11px;font-weight:600;color:var(--ink2);text-align:center;margin-top:-4px}
 .g-sub{display:none}
+.g-axis{font-size:10px;fill:#7B8494}
+.g-status{display:none}
+.gauge .g-axis{display:none}
+.ks{margin-top:6px}
+.ks-cap{display:flex;justify-content:space-between;font-size:8.5px;color:#7B8494}
+.ks-cap .ks-range{display:none}
+.ks svg{display:block;width:100%;height:26px;overflow:visible}
+.ks-x{display:flex;justify-content:space-between;font-size:8px;color:#7B8494}
+.ks-ref{color:#5A6474}
 </style></head>
 <body>
 <div id="root"></div>
@@ -57,18 +66,19 @@ const ngp=go.map((g,i)=>ng[i]/(g+ng[i])*100);
 function bars(w,h){ const max=Math.max(...go.map((g,i)=>g+ng[i]))*1.05, bw=w/go.length;
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">`+go.map((g,i)=>{const gH=g/max*(h-4), nH=Math.max(2,ng[i]/max*(h-4)), x=i*bw+1.5;
     return `<rect x="${x}" y="${h-gH}" width="${bw-3}" height="${gH}" rx="2" fill="#4F7CC9"/><rect x="${x}" y="${h-gH-nH-1}" width="${bw-3}" height="${nH}" rx="1.5" fill="#D9534F"/>`;}).join("")+`</svg>`; }
+const p1=x=>x.toFixed(1)+"%", n0=x=>Math.round(x).toLocaleString("en-IN");
 const kp=`<div class="kp">
-  <div><small>Shift output</small><b>49,040</b>${VIZ.spark([2,5,9,13,18,22,27,31,36,40,45,49],"#2A9DA8")}</div>
-  <div><small>GO parts</small><b>47,772</b>${VIZ.spark(go.slice(-14),"#4F7CC9")}</div>
-  <div class="g"><small>NG parts</small><b class="ng">1,268</b>${VIZ.spark(ng.slice(-14),"#D9534F")}</div>
-  <div class="g"><small>NG %</small><b>2.59%</b>${VIZ.spark(ngp.slice(-14),"#C98A16")}</div></div>`;
-const gauges=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${VIZ.gauge(97.4,"#1E8E5A","First-pass yield","97.4%","",96.5)}${VIZ.gauge(94,"#2A9DA8","Material yield","94.0%","",93)}</div>`;
+  <div><small>Shift output</small><b>49,040</b>${VIZ.spark([2,5,9,13,18,22,27,31,36,40,45,49].map(x=>x*1000),"#2A9DA8",{caption:"Cumulative",x0:"14:00",x1:"Now",fmt:n0})}</div>
+  <div><small>GO parts</small><b>47,772</b>${VIZ.spark(go.slice(-14),"#4F7CC9",{caption:"Per minute",x0:"−14 min",x1:"Now",fmt:n0,ref:200,refLabel:"Plan"})}</div>
+  <div class="g"><small>NG parts</small><b class="ng">1,268</b>${VIZ.spark(ng.slice(-14),"#D9534F",{caption:"Per minute",x0:"−14 min",x1:"Now",fmt:n0})}</div>
+  <div class="g"><small>NG %</small><b>2.59%</b>${VIZ.spark(ngp.slice(-14),"#C98A16",{caption:"Per minute",x0:"−14 min",x1:"Now",fmt:p1,ref:3.5,refLabel:"USL"})}</div></div>`;
+const gauges=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${VIZ.gauge({min:90,max:100,value:97.4,target:96.5,zones:[[90,94.75,"bad"],[94.75,96.5,"warn"],[96.5,100,"good"]],label:"First-pass yield",valueText:"97.4%",fmt:x=>x+"%",dfmt:d=>d.toFixed(1)+" pts"})}${VIZ.gauge({min:85,max:100,value:94,target:93,zones:[[85,90,"bad"],[90,93,"warn"],[93,100,"good"]],label:"Material yield",valueText:"94.0%",fmt:x=>x+"%",dfmt:d=>d.toFixed(1)+" pts"})}</div>`;
 const dash=(w)=>`<div class="dash" style="width:${w}px">
   <div class="dh"><b>Live shift · GO vs NG</b><span class="live"><i></i>LIVE</span></div>${kp}
   <div class="row"><div class="box"><small>Output per minute</small>${bars(300,118)}</div><div class="box">${gauges}</div></div></div>`;
 const P=`<img class="pwt" src="../assets/prowesstics-logo.png" alt="Prowesstics">`;
 const SC=`<div class="prep"><small>Prepared for</small><img class="sct" src="../assets/sujan-continental-logo.png" alt="Sujan Continental"></div>`;
-const stats=`<div style="display:flex;gap:30px;margin-top:30px;padding-top:20px;border-top:1px solid #E6DBC4">${[["1,00,000","parts / shift"],["13","raw materials"],["Live","GO / NG"]].map(([a,b])=>`<div><div style="font-size:24px;font-weight:700">${a}</div><div style="font-size:12.5px;color:#7B8494">${b}</div></div>`).join("")}</div>`;
+const stats=`<div style="display:flex;gap:30px;margin-top:30px;padding-top:20px;border-top:1px solid #E6DBC4">${[["1,00,000","parts / shift"],["13","raw materials"],["Live","GO / NG"]].map(([a,b])=>`<div><div style="font-size:24px;font-weight:600">${a}</div><div style="font-size:12.5px;color:#7B8494">${b}</div></div>`).join("")}</div>`;
 const chips=`<div class="chips"><span>1,00,000 parts / shift</span><span>13 raw materials</span><span>AI insights</span></div>`;
 const T={
  a:`<div class="card" style="background:#FBF7EE">
@@ -88,7 +98,7 @@ const T={
       <h1 style="font-size:50px;margin-top:16px">Yield &amp; Scrap <em>Management</em></h1>
       <p class="lead" style="font-size:20px;margin-top:10px">Live GO / NG, raw material yield, scrap cost and stock, every second.</p></div>
     <div style="position:absolute;left:150px;right:150px;top:318px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
-      ${[["Shift output","49,040","#2A9DA8",[2,5,9,13,18,22,27,31,36,40,45,49]],["GO parts","47,772","#4F7CC9",go.slice(-14)],["NG %","2.59%","#D9534F",ngp.slice(-14)],["Material yield","94.0%","#C98A16",[93.1,93.4,93.2,93.8,93.6,94.1,93.9,94.2,94,94.3,94.1,94]]].map(([l,v,c,d])=>`<div style="background:#fff;border:1px solid #EFE8D8;border-radius:16px;padding:16px 18px;box-shadow:0 14px 34px rgba(60,48,20,.10)"><div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#7B8494;text-transform:uppercase">${l}</div><div style="font-size:32px;font-weight:700;margin-top:4px">${v}</div><div style="height:46px;margin-top:6px">${VIZ.spark(d,c).replace('class="kspark"','style="width:100%;height:46px;display:block"')}</div></div>`).join("")}</div>
+      ${[["Shift output","49,040","#2A9DA8",[2,5,9,13,18,22,27,31,36,40,45,49]],["GO parts","47,772","#4F7CC9",go.slice(-14)],["NG %","2.59%","#D9534F",ngp.slice(-14)],["Material yield","94.0%","#C98A16",[93.1,93.4,93.2,93.8,93.6,94.1,93.9,94.2,94,94.3,94.1,94]]].map(([l,v,c,d])=>`<div style="background:#fff;border:1px solid #EFE8D8;border-radius:16px;padding:16px 18px;box-shadow:0 14px 34px rgba(60,48,20,.10)"><div style="font-size:12px;font-weight:600;letter-spacing:.08em;color:#7B8494;text-transform:uppercase">${l}</div><div style="font-size:32px;font-weight:600;margin-top:4px">${v}</div><div style="height:46px;margin-top:6px">${VIZ.spark(d,c).replace('class="kspark"','style="width:100%;height:46px;display:block"')}</div></div>`).join("")}</div>
     <div style="position:absolute;left:150px;right:150px;bottom:40px;display:flex;justify-content:center">${chips}</div></div>`,
  c:`<div class="card" style="background:#F8F3E8">
     <div style="position:absolute;right:0;top:0;bottom:0;width:560px;background:linear-gradient(160deg,#E4F3F4,#F3F8F1);border-left:1px solid #E3DCCB"></div>
@@ -138,7 +148,7 @@ const T={
       <div style="width:64px;height:3px;background:#C98A16;margin-top:22px"></div>
       <p class="lead" style="font-size:20px;margin-top:20px">One live view of output, rejections, raw material yield and scrap cost, line by line.</p></div>
     <div style="position:absolute;left:64px;right:64px;bottom:118px;height:1px;background:#E6DBC4"></div>
-    <div style="position:absolute;left:64px;right:64px;bottom:40px;display:flex;justify-content:space-between;align-items:flex-end">${SC}<div style="display:flex;gap:44px">${[["1,00,000","parts per shift"],["13","raw materials tracked"],["Live","GO / NG every second"]].map(([a,b])=>`<div><div style="font-size:26px;font-weight:700;color:#1F2A37">${a}</div><div style="font-size:12.5px;color:#7B8494">${b}</div></div>`).join("")}</div></div>
+    <div style="position:absolute;left:64px;right:64px;bottom:40px;display:flex;justify-content:space-between;align-items:flex-end">${SC}<div style="display:flex;gap:44px">${[["1,00,000","parts per shift"],["13","raw materials tracked"],["Live","GO / NG every second"]].map(([a,b])=>`<div><div style="font-size:26px;font-weight:600;color:#1F2A37">${a}</div><div style="font-size:12.5px;color:#7B8494">${b}</div></div>`).join("")}</div></div>
     <div style="position:absolute;right:56px;top:112px">${dash(540)}</div></div>`
  ,d4:`<div class="card" style="background:linear-gradient(180deg,#FFFDF8 0%,#F8EEDA 100%)">
     <div style="position:absolute;left:64px;right:64px;top:50px;display:flex;justify-content:space-between;align-items:center">${P}<span class="tag">Demo · Simulated data</span></div>
@@ -147,7 +157,7 @@ const T={
       <h1 style="font-size:46px;margin-top:10px">Yield &amp; Scrap Management Dashboard</h1>
       <p class="lead" style="font-size:19px;margin-top:10px">Output, rejections, raw material yield and scrap cost, updated every second.</p></div>
     <div style="position:absolute;left:64px;right:64px;top:290px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
-      ${[["Shift output","49,040","#2A9DA8",[2,5,9,13,18,22,27,31,36,40,45,49]],["First-pass yield","97.4%","#1E8E5A",[97.1,97.6,97.3,96.9,97.5,97.8,97.2,97.4,97.6,97.3,97.5,97.4]],["NG %","2.59%","#D9534F",ngp.slice(-14)],["Material yield","94.0%","#C98A16",[93.1,93.4,93.2,93.8,93.6,94.1,93.9,94.2,94,94.3,94.1,94]]].map(([l,v,c,d])=>`<div style="background:#fff;border:1px solid #EADFC8;border-radius:12px;padding:18px 20px;box-shadow:0 10px 28px rgba(60,48,20,.08)"><div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#7B8494;text-transform:uppercase">${l}</div><div style="font-size:34px;font-weight:700;margin-top:4px">${v}</div><div style="height:64px;margin-top:8px">${VIZ.spark(d,c).replace('class="kspark"','style="width:100%;height:64px;display:block"')}</div></div>`).join("")}</div>
+      ${[["Shift output","49,040","#2A9DA8",[2,5,9,13,18,22,27,31,36,40,45,49]],["First-pass yield","97.4%","#1E8E5A",[97.1,97.6,97.3,96.9,97.5,97.8,97.2,97.4,97.6,97.3,97.5,97.4]],["NG %","2.59%","#D9534F",ngp.slice(-14)],["Material yield","94.0%","#C98A16",[93.1,93.4,93.2,93.8,93.6,94.1,93.9,94.2,94,94.3,94.1,94]]].map(([l,v,c,d])=>`<div style="background:#fff;border:1px solid #EADFC8;border-radius:12px;padding:18px 20px;box-shadow:0 10px 28px rgba(60,48,20,.08)"><div style="font-size:12px;font-weight:600;letter-spacing:.08em;color:#7B8494;text-transform:uppercase">${l}</div><div style="font-size:34px;font-weight:600;margin-top:4px">${v}</div><div style="height:64px;margin-top:8px">${VIZ.spark(d,c).replace('class="kspark"','style="width:100%;height:64px;display:block"')}</div></div>`).join("")}</div>
     <div style="position:absolute;left:64px;right:64px;bottom:38px;display:flex;justify-content:space-between;align-items:center">${SC}<div style="font-size:13px;color:#7B8494;letter-spacing:.04em">ProVision AI · Prowesstics</div></div></div>`
 };
 document.getElementById("root").innerHTML = (V==="all"? ["a","b","c","d"] : [V]).map(k=>`<div style="margin:0 0 20px">${T[k]}</div>`).join("");
