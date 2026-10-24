@@ -55,7 +55,7 @@ function newShift(){
   rand = mulberry32(Math.floor(sh.start/1000) ^ 0x5C7);
   S = {name:sh.name, start:sh.start, end:sh.start+SHIFT_SEC*1000, sec:0,
     lines: LINES.map(()=>({go:0, ng:0, minGo:new Array(480).fill(0), minNg:new Array(480).fill(0), reasons:new Array(REASONS.length).fill(0),
-      exc:null, stop:null, alerted:false, sGo:new Uint32Array(5760), sNg:new Uint32Array(5760),
+      exc:null, stop:null, alerted:false, sGo:new Uint32Array(5760), sNg:new Uint32Array(5760), minCost:new Float64Array(480),
       rm:Object.fromEntries(RMS.map(r=>[r.id,{set:0, actual:0}]))})),
     rm: Object.fromEntries(RMS.map(r=>[r.id,{set:0, actual:0}]))};
 }
@@ -80,7 +80,7 @@ function stepSecond(){
     st.go+=go; st.ng+=ng; st.minGo[idx]+=go; st.minNg[idx]+=ng;
     const b5 = Math.min(5759, Math.floor((simMs - S.start)/5000)); st.sGo[b5]+=go; st.sNg[b5]+=ng;
     for(let k=0;k<ng;k++){ const r = st.exc&&rand()<0.65? st.exc.reason : pickReason(); st.reasons[r]++; }
-    RMS.forEach(r=>{ const sd=L.std[r.id]||0; if(!sd) return; const a=n*sd*(1+r.loss*(0.8+rand()*0.4)); S.rm[r.id].set += go*sd; S.rm[r.id].actual += a; st.rm[r.id].set += go*sd; st.rm[r.id].actual += a; });
+    RMS.forEach(r=>{ const sd=L.std[r.id]||0; if(!sd) return; const a=n*sd*(1+r.loss*(0.8+rand()*0.4)); st.minCost[idx] += (a-go*sd)*r.rate; S.rm[r.id].set += go*sd; S.rm[r.id].actual += a; st.rm[r.id].set += go*sd; st.rm[r.id].actual += a; });
     // USL breach alert on rolling 5 minutes
     if(st.exc && !st.alerted && idx>=1){
       const r5 = rollNg(i,5);
@@ -160,7 +160,23 @@ function renderKpis(){
     ["Run rate", nf.format(rate5)+" /min", `<span>Need ${nf.format(need)} /min to hit target · projected ${nf.format(projected)}</span>`, false, ""],
     ["Scrap this shift", inr(cost), `<span>${nf.format(waste)} kg RM wasted</span>`, true, ""]
   ];
-  $("lvKpis").innerHTML = tiles.map(([l,v,s,hl,cls])=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val ${cls}">${v}</div><div class="sub">${s}</div></div>`).join("");
+  // last 30 minutes per tile
+  const e2=curIdx(), s2=Math.max(0,e2-29), ix=IDX(), M=[];
+  for(let m=s2;m<=e2;m++){ M.push({go:ix.reduce((a,i)=>a+S.lines[i].minGo[m],0), ng:ix.reduce((a,i)=>a+S.lines[i].minNg[m],0), c:ix.reduce((a,i)=>a+S.lines[i].minCost[m],0)}); }
+  let cum=0; const cumOut=[]; for(let m=0;m<=e2;m++){ cum+=ix.reduce((a,i)=>a+S.lines[i].minGo[m]+S.lines[i].minNg[m],0); if(m>=s2) cumOut.push(cum); }
+  let cc=0; const cumCost=[]; for(let m=0;m<=e2;m++){ cc+=ix.reduce((a,i)=>a+S.lines[i].minCost[m],0); if(m>=s2) cumCost.push(cc); }
+  const sp=[ VIZ.spark(cumOut,"#2F5BA8"), VIZ.spark(M.map(x=>x.go),"#2F5BA8",null,{zero:true}), VIZ.spark(M.map(x=>x.ng),C.ng,null,{zero:true}),
+    VIZ.spark(M.map(x=>x.go+x.ng? x.ng/(x.go+x.ng)*100:null), ngPct>USL?C.ng:"#1F9AA6"), VIZ.spark(M.map(x=>x.go+x.ng),"#1F9AA6",null,{zero:true}), VIZ.spark(cumCost,"#C98A16") ];
+  $("lvKpis").innerHTML = tiles.map(([l,v,s,hl,cls],k)=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val ${cls}">${v}</div><div class="sub">${s}</div>${sp[k]}</div>`).join("");
+  // gauges
+  const att = expected? n/expected*100 : 100, fpy = n? t.go/n*100 : 100;
+  let ts=0,ta=0; RMS.forEach(r=>{const m=rmOf(r.id); ts+=m.set; ta+=m.actual;}); const my = ta? ts/ta*100 : 100;
+  const col=(v,g,w)=> v>=g? "#1E8E5A" : v>=w? "#B7791F" : "#C93A3A";
+  $("lvGauges").innerHTML =
+    VIZ.gauge(Math.min(100,att), col(att,98,92), "Plan attainment", att.toFixed(0)+"%", `${nf.format(n)} of ${nf.format(Math.round(expected))} due by now`, 100) +
+    VIZ.gauge(fpy, col(fpy,100-USL,100-USL*1.5), "First-pass yield (GO %)", fpy.toFixed(1)+"%", `Target ≥ ${(100-USL).toFixed(1)}%`, 100-USL) +
+    VIZ.gauge(my, col(my,93,90), "Material yield", my.toFixed(1)+"%", "RM in good parts ÷ RM issued", 93) +
+    VIZ.gauge(Math.min(100, rate5/(TG/480)*100), col(rate5/(TG/480)*100,98,90), "Speed vs plan", (rate5/(TG/480)*100).toFixed(0)+"%", `${nf.format(rate5)} vs ${nf.format(TG/480)} parts/min`, 100);
 }
 
 function spark(i){
@@ -214,7 +230,7 @@ function renderNgChart(){
   for(let b=0;b<nb;b++){ let g=0,n=0; for(let m=b*5;m<Math.min(b*5+5,e+1);m++){ IDX().forEach(i=>{g+=S.lines[i].minGo[m];n+=S.lines[i].minNg[m];}); } labels.push(hhmm(S.start+b*300000)); vals.push(g+n? n/(g+n)*100 : null); }
   const out=vals.map(v=>v!==null&&v>USL);
   upsert("lvChNg",{type:"line",data:{labels,datasets:[
-    {label:"NG %",data:vals,borderColor:C.go,borderWidth:2,pointRadius:vals.map((v,i)=>out[i]?4:0),pointBackgroundColor:C.ng,pointBorderColor:"#fff",pointBorderWidth:1.5,pointHoverRadius:5,tension:0,pointStyle:"circle"},
+    {label:"NG %",data:vals,borderColor:C.go,borderWidth:2,fill:"origin",backgroundColor:VIZ.fill(C.go),pointRadius:vals.map((v,i)=>out[i]?4:0),pointBackgroundColor:C.ng,pointBorderColor:"#fff",pointBorderWidth:1.5,pointHoverRadius:5,tension:0,pointStyle:"circle"},
     {label:"USL",data:labels.map(()=>USL),borderColor:C.ng,borderWidth:1.5,borderDash:[6,4],pointRadius:0,pointHoverRadius:0,pointStyle:"line"}]},
     options:{animation:false,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y==null?"-":c.parsed.y.toFixed(2)+"%"}`}}},
       scales:{x:{grid:NOGRID,ticks:{maxTicksLimit:8,maxRotation:0}},y:{grid:GRID,suggestedMin:0,suggestedMax:USL*1.6,ticks:{callback:v=>v+"%"}}}}});

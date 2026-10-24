@@ -218,7 +218,10 @@ function renderKpis(){
     ["Good parts", nf0.format(a.good), `<span>${pct(a.attain)} of plan (${nf0.format(a.planned)})</span>`, false],
     ["Rejection rate", pct(a.rejRate,2), deltaHtml(a.rejRate,P("rejRate"),true,x=>(x*100).toFixed(2)+" pts"), false]
   ];
-  $("kpis").innerHTML = tiles.map(([l,v,s,hl])=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s}</div></div>`).join("");
+  const all=S.months.map(m=>agg(rowsFor(m))), hi=new Set(periodMonths().map(m=>S.months.indexOf(m)));
+  const sp=[ VIZ.spark(all.map(x=>x.yield*100),"#1F9AA6",hi), VIZ.spark(all.map(x=>x.scrap*100),"#C98A16",hi), VIZ.spark(all.map(x=>x.waste),"#2F5BA8",hi),
+    VIZ.spark(all.map(x=>x.cost),"#C98A16",hi), VIZ.spark(all.map(x=>x.good),"#2F5BA8",hi), VIZ.spark(all.map(x=>x.rejRate*100),STATUS.crit,hi) ];
+  $("kpis").innerHTML = tiles.map(([l,v,s,hl],k)=>`<div class="kpi${hl?" hl":""}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="sub">${s}</div>${sp[k]}<div class="spark-cap">12-month trend · dots = selected period</div></div>`).join("");
 }
 
 /* ---------- Production details (line cards) ---------- */
@@ -307,7 +310,7 @@ function renderSpc(){
   const out = s.vals.map(v=>v!==null&&(v>s.usl||v<s.lsl));
   $("inUsl").value = s.usl.toFixed(1); $("inLsl").value = s.lsl.toFixed(1);
   upsert("chSpc",{type:"line",data:{labels,datasets:[
-    {label:"Scrap %",data:s.vals,borderColor:"#2F5BA8",borderWidth:2,tension:0,
+    {label:"Scrap %",data:s.vals,borderColor:"#2F5BA8",borderWidth:2,tension:0.25,fill:"origin",backgroundColor:VIZ.fill("#2F5BA8"),
       pointRadius:s.vals.map((v,i)=>out[i]?6:inR.has(i)?5:3),
       pointBackgroundColor:s.vals.map((v,i)=>out[i]?STATUS.crit:inR.has(i)?"#2F5BA8":"#B8C2D3"),
       pointBorderColor:"#fff",pointBorderWidth:2,pointHoverRadius:7,pointStyle:"circle"},
@@ -358,6 +361,45 @@ function renderSva(){
     plugins:{legend:{position:"bottom",labels:{generateLabels:ch=>[{text:"Set (standard)",fillStyle:"#B8C2D3",strokeStyle:"#B8C2D3",borderRadius:3},{text:"Actual (RM colour)",fillStyle:"#2F5BA8",strokeStyle:"#2F5BA8",borderRadius:3}]}},
       tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf0.format(c.parsed.x)} kg`,afterBody:it=>{const b=us[it[0].dataIndex].b;return `Wastage: ${nf0.format(b.waste)} kg (${pct(b.waste/b.actual)})`;}}}},
     scales:{x:{grid:GRID,ticks:{maxTicksLimit:5,maxRotation:0,callback:v=>v>=1e5?(v/1e5).toFixed(0)+" L":nf0.format(v)}},y:{grid:NOGRID}}}});
+}
+
+/* ---------- Material flow, cost share, heatmap ---------- */
+function renderFlow(){
+  const rows=rowsPeriod(), ids=rmList(), a=agg(rows);
+  const rejBy={}; ids.forEach(id=>rejBy[id]=0);
+  rows.forEach(p=>{const v=vById(p.variant); ids.forEach(id=>{ rejBy[id] += p.rejected*((v&&v.std[id])||0); });});
+  const rej=Object.values(rejBy).reduce((s,x)=>s+x,0), issued=a.actual, good=a.set, proc=Math.max(0,issued-good-rej);
+  const LBL={POL:"Rubber: flash, runners, mixing",FIL:"Compound chemicals: flash, runners",MET:"Metal: pre-treatment, swaging rejects",PLA:"Plastic housings: moulding rejects",BND:"Bonding agent: spray overspray",OTH:"Other process loss"};
+  const byG={}; ids.forEach(id=>{ const g=groupOf(id).id, b=a.byRm[id]; const pl=Math.max(0,b.waste-rejBy[id]); byG[g]=byG[g]||{kg:0,inr:0}; byG[g].kg+=pl; byG[g].inr+=pl*rate(id); });
+  let rejInr=0; ids.forEach(id=>rejInr+=rejBy[id]*rate(id));
+  const items=[["Locked in NG parts (all materials)",rej,rejInr]].concat(Object.entries(byG).map(([g,v])=>[LBL[g]||g,v.kg,v.inr])).filter(x=>x[1]>0.5).sort((x,y)=>y[1]-x[1]);
+  $("wfLbl").textContent = periodLabel(true);
+  upsert("chFlow",{type:"bar",data:{labels:items.map(x=>x[0]),datasets:[{label:"Wasted kg",data:items.map(x=>x[1]),backgroundColor:items.map(x=>x[0].startsWith("Locked")?STATUS.crit:"#2F5BA8"),borderRadius:4,borderSkipped:"start",maxBarThickness:18}]},
+    options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${nf0.format(c.raw)} kg · ${inr(items[c.dataIndex][2])}`}}},
+      scales:{x:{grid:GRID,ticks:{maxTicksLimit:5,maxRotation:0,callback:v=>v>=1e5?(v/1e5).toFixed(1)+" L":nf0.format(v)}},y:{grid:NOGRID,ticks:{font:{size:11}}}}}});
+  $("wfFoot").innerHTML = `Of every 100 kg issued: <b>${(good/issued*100).toFixed(1)} kg</b> ends up in good parts, <b style="color:${STATUS.crit}">${(rej/issued*100).toFixed(1)} kg</b> is locked in NG parts and <b style="color:#2F5BA8">${(proc/issued*100).toFixed(1)} kg</b> is lost in process. By cost, NG parts account for <b>${inr(rejInr)}</b>.`;
+}
+function renderDonut(){
+  const a=agg(rowsPeriod()), us=units().map(u=>({u,c:Math.max(0,uSum(a,u).cost)})).filter(x=>x.c>0).sort((x,y)=>y.c-x.c);
+  const tot=us.reduce((s,x)=>s+x.c,0);
+  $("dnLbl").textContent = periodLabel(true);
+  upsert("chDonut",{type:"doughnut",data:{labels:us.map(x=>x.u.name),datasets:[{data:us.map(x=>x.c),backgroundColor:us.map(x=>x.u.color),borderColor:"#fff",borderWidth:2,hoverOffset:6}]},
+    options:{maintainAspectRatio:false,cutout:"68%",layout:{padding:{bottom:4}},plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${inr(c.raw)} (${(c.raw/tot*100).toFixed(1)}%)`}}}}});
+  $("dnCenter").innerHTML = `<b>${inr(tot)}</b><span>Scrap cost</span>`;
+}
+function renderHeat(){
+  const ls=lines(), pm=new Set(periodMonths());
+  const val=(m,l)=>{const g=agg(rowsFor(m).filter(p=>!l||p.line===l)); return isFinite(g.scrap)?g.scrap*100:null;};
+  const grid=ls.map(l=>S.months.map(m=>val(m,l))).concat([S.months.map(m=>val(m,null))]);
+  const all=grid.flat().filter(v=>v!=null), mn=Math.min(...all), mx=Math.max(...all);
+  const ramp=["#FDF2EF","#F8D5C9","#F2B9A8","#E68F74","#D9674B","#BE4630","#A3301E"];
+  const cell=v=>{ if(v==null) return `<td style="background:#F3F5F9">-</td>`; const t=(v-mn)/((mx-mn)||1), k=Math.min(ramp.length-1,Math.floor(t*ramp.length)); return {bg:ramp[k],fg:k>=4?"#fff":"#0E1B33"}; };
+  const head=`<tr><th></th>${S.months.map(m=>`<th>${monthLabel(m).replace("-","<br>")}</th>`).join("")}</tr>`;
+  const body=grid.map((row,r)=>`<tr><th class="rowh">${r<ls.length?ls[r]:"Plant"}</th>${row.map((v,c)=>{const s=cell(v); if(typeof s==="string") return s;
+    return `<td class="${pm.has(S.months[c])?"sel":""}" style="background:${s.bg};color:${s.fg}" title="${r<ls.length?ls[r]:"Plant"}, ${monthLabel(S.months[c])}: ${v.toFixed(2)}% scrap">${v.toFixed(1)}</td>`;}).join("")}</tr>`).join("");
+  $("heatmap").innerHTML = `<table class="heat" aria-label="Scrap percent by month and line">${head}${body}</table>
+    <div class="heat-legend"><span>${mn.toFixed(1)}%</span><i></i><span>${mx.toFixed(1)}%</span><span>· outlined = selected period</span></div>`;
 }
 
 /* ---------- AI insights ---------- */
@@ -552,7 +594,7 @@ function normMonth(v){
 /* ---------- Render all ---------- */
 function render(withDrawer=true){
   renderFilters(); renderLimitMode(); renderKpis(); renderLines(); renderStock();
-  renderSpc(); renderParts(); renderWaste(); renderSva(); renderInsights(); renderWhatIf(); renderTable(); renderMaster();
+  renderSpc(); renderParts(); renderWaste(); renderSva(); renderFlow(); renderDonut(); renderHeat(); renderInsights(); renderWhatIf(); renderTable(); renderMaster();
   if(withDrawer && $("drawer").classList.contains("open")) renderDrawer();
 }
 render();

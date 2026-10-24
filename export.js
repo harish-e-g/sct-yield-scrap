@@ -62,27 +62,30 @@ async function pdf(){
   const W=297, H=210, M=10, CW=W-2*M, d=data();
   const [pw, sc] = await Promise.all([imgData("assets/prowesstics-logo.png"), imgData("assets/sujan-continental-logo.png")]);
   const navy=[10,31,68], gold=[232,180,82];
+  await document.fonts.ready;
+  const FONT=getComputedStyle(document.body).fontFamily;
+  // text rendered in the dashboard font (Avenir / Nunito Sans) so the PDF matches the page
+  function T(str, mmH, color, weight){
+    const px=64, c=document.createElement("canvas"), g=c.getContext("2d");
+    g.font=`${weight||400} ${px}px ${FONT}`; const w=Math.ceil(g.measureText(str).width)+8;
+    c.width=w; c.height=Math.ceil(px*1.35); g.font=`${weight||400} ${px}px ${FONT}`; g.fillStyle=color; g.textBaseline="middle"; g.fillText(str,4,c.height/2);
+    return {url:c.toDataURL("image/png"), w:mmH*c.width/c.height, h:mmH};
+  }
+  function put(img, x, y, align){ doc.addImage(img.url,"PNG", align==="right"? x-img.w : align==="center"? x-img.w/2 : x, y, img.w, img.h); }
+  const ribbon=T("DEMO DASHBOARD  |  CAUTION: all figures are simulated for illustration only and do not represent actual Sujan Continental plant data.",4.6,"#0A1F44",700);
+  const title=T(`Yield & Scrap Management: ${d.title}`,8,"#FFFFFF",700);
+  const sub=T(`${d.period}   |   Generated ${new Date().toLocaleString("en-IN")}`,4.6,"#B9C4D8",400);
+  const foot=T("Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan Continental, Pune. Demo dashboard for discussion; simulated data.",3.6,"#6B7890",400);
   function header(first){
-    doc.setFillColor(...gold); doc.rect(0,0,W,7,"F");
-    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...navy);
-    doc.text("DEMO DASHBOARD  |  CAUTION: all figures are simulated for illustration only and do not represent actual Sujan Continental plant data.", W/2, 4.7, {align:"center"});
+    doc.setFillColor(...gold); doc.rect(0,0,W,7,"F"); put(ribbon, W/2, 1.2, "center");
     doc.setFillColor(...navy); doc.rect(0,7,W,first?24:14,"F");
     const lh = first?7:5;
     doc.addImage(pw.url,"PNG",M,first?12:10, lh*pw.w/pw.h, lh);
     doc.addImage(sc.url,"PNG",W-M-lh*sc.w/sc.h,first?12:10, lh*sc.w/sc.h, lh);
-    if(first){
-      doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text(`Yield & Scrap Management: ${d.title}`, M, 26);
-      doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(185,196,216);
-      doc.text(`${d.period}   |   Generated ${new Date().toLocaleString("en-IN")}`, W-M, 26, {align:"right"});
-      return 35;
-    }
+    if(first){ put(title, M, 21.2); put(sub, W-M, 23); return 35; }
     return 25;
   }
-  function footer(p, n){
-    doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(107,120,144);
-    doc.text("Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan Continental, Pune. Demo dashboard for discussion; simulated data.", M, H-5);
-    doc.text(`Page ${p} of ${n}`, W-M, H-5, {align:"right"});
-  }
+  function footer(p, n){ put(foot, M, H-7.2); put(T(`Page ${p} of ${n}`,3.6,"#6B7890",400), W-M, H-7.2, "right"); }
   const v=viewEl();
   const blocks=[...v.querySelectorAll("main > section")].filter(s=>!s.querySelector("#dataTable") || !$("dataTable").hidden);
   let y=header(true), page=1;
@@ -123,7 +126,7 @@ async function offline(){
   let html = await get("index.html");
   const css = await get("styles.css");
   html = html.replace(/<link rel="stylesheet" href="styles\.css[^"]*">/, ()=>"<style>\n"+css+"\n</style>");
-  for(const s of ["lib/chart.umd.min.js","lib/xlsx.full.min.js","lib/jspdf.umd.min.js","lib/html2canvas.min.js","materials.js","app.js","live.js","export.js"]){
+  for(const s of ["lib/chart.umd.min.js","lib/xlsx.full.min.js","lib/jspdf.umd.min.js","lib/html2canvas.min.js","viz.js","materials.js","app.js","live.js","export.js"]){
     const js=(await get(s)).replace(/<\/script>/g,"<\\/script>");
     const re=new RegExp('<script src="'+s.replace(/[.\/]/g,"\\$&")+'[^"]*"( defer)?></script>');
     let rep="<script>\n"+js+"\n</script>";
