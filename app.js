@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 
-const STORE_KEY = "sct-yield-scrap-v1";
+const STORE_KEY = "sct-yield-scrap-v2";
 const SERIES = ["#2F5BA8","#1F9AA6","#C98A16","#8E5BB5","#5E8C31"]; // validated (first 3), light surface
 const LINE_COLORS = {"Line 1":"#2F5BA8","Line 2":"#1F9AA6"};
 const STATUS = {good:"#1E8E5A", warn:"#B7791F", crit:"#C93A3A"};
@@ -29,7 +29,7 @@ function buildDemo(){
   const vById = Object.fromEntries(variants.map(v=>[v.id,v]));
   const prod = [];
   months.forEach((m,i)=>{
-    [["Line 1","5220",18000],["Line 2", (i%3===2)?"BS140":"EM310", (i%3===2)?26000:12000]].forEach(([line,vid,base])=>{
+    [["Line 1","5220",3510000],["Line 2", (i%3===2)?"BS140":"EM310", (i%3===2)?4290000:3000000]].forEach(([line,vid,base])=>{
       const planned = Math.round(base*r(0.95,1.06)/100)*100;
       const produced = Math.round(planned*r(0.93,0.99));
       const rejRate = r(0.012,0.028) + (i===8&&line==="Line 1"?0.03:0);
@@ -44,7 +44,8 @@ function buildDemo(){
     });
   });
   // stock: first-month opening + monthly inward
-  const stock = {opening:{NR:9200,CB:2600,MS:13500}, inward:{}};
+  const stock = {opening:{}, inward:{}};
+  rms.forEach(rm=>{ stock.opening[rm.id] = Math.round(prod.filter(p=>p.month===months[0]).reduce((s,p)=>s+p.actual[rm.id],0)*0.55/100)*100; });
   months.forEach(m=>{
     stock.inward[m] = {};
     rms.forEach(rm=>{
@@ -281,7 +282,7 @@ function renderParts(){
     label:l,data:S.months.map(m=>S.prod.filter(p=>p.month===m&&p.line===l&&(ui.variant==="all"||p.variant===ui.variant)).reduce((s,p)=>s+p.good,0)),
     backgroundColor:LINE_COLORS[l]||SERIES[3],borderRadius:4,borderSkipped:"start",borderColor:"#fff",borderWidth:{left:1,right:1},maxBarThickness:18}))},
     options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf0.format(c.parsed.y)} parts`}}},
-      scales:{y:{grid:GRID,ticks:{callback:v=>v>=1000?(v/1000)+"k":v}},x:{grid:NOGRID}}}});
+      scales:{y:{grid:GRID,ticks:{callback:v=>v>=1e5?(v/1e5)+" L":nf0.format(v)}},x:{grid:NOGRID}}}});
 }
 
 function renderWaste(){
@@ -479,4 +480,5 @@ function render(withDrawer=true){
   if(withDrawer && $("drawer").classList.contains("open")) renderDrawer();
 }
 render();
+window.__monthly={charts,render};
 })();

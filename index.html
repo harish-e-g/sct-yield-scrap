@@ -26,6 +26,73 @@
   </div>
 </header>
 
+<nav class="viewtabs" role="tablist" aria-label="Views">
+  <button role="tab" data-view="live" class="on" aria-selected="true"><span class="live-dot" aria-hidden="true"></span>Live shift</button>
+  <button role="tab" data-view="monthly" aria-selected="false">Monthly analysis</button>
+</nav>
+
+<div id="viewLive">
+  <section class="shiftbar">
+    <div class="shift-id">
+      <span class="live-badge"><span class="live-dot" aria-hidden="true"></span>LIVE</span>
+      <b id="lvShift">Shift</b>
+      <span class="muted" id="lvShiftWin"></span>
+    </div>
+    <div class="shift-clock"><span class="muted">Clock</span> <b id="lvClock">--:--:--</b> <span class="muted" id="lvElapsed"></span></div>
+    <div class="shift-ctrl">
+      <span class="muted">Speed</span>
+      <div class="seg" role="group" aria-label="Simulation speed" id="lvSpeed">
+        <button data-sp="1" class="on">1x</button><button data-sp="10">10x</button><button data-sp="60">60x</button>
+      </div>
+      <button class="btn ghost sm" id="lvPause">Pause</button>
+    </div>
+  </section>
+  <p class="feed-note" id="lvFeedNote">Simulated plant feed for demo: about 1,00,000 parts per shift across both lines, updating every second. In production this connects to press counters, weighing scales and ProVision AI cameras.</p>
+
+  <main>
+    <section class="kpis" id="lvKpis" aria-label="Live shift metrics"></section>
+
+    <section class="grid-live">
+      <div class="panel">
+        <div class="panel-head"><h2>Lines right now</h2><span class="muted">Last 5 minutes</span></div>
+        <div class="lines" id="lvLines"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Output per minute, GO vs NG</h2><span class="muted">Last 60 minutes</span></div>
+        <div class="chart-box tall"><canvas id="lvChRate" aria-label="Parts per minute, GO and NG, last 60 minutes"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid-3">
+      <div class="panel">
+        <div class="panel-head"><h2>NG % this shift</h2><span class="muted">5-minute buckets</span></div>
+        <div class="chart-box"><canvas id="lvChNg" aria-label="NG percent in five minute buckets with USL"></canvas></div>
+        <p class="chart-foot" id="lvNgFoot"></p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>NG reasons</h2><span class="muted">This shift</span></div>
+        <div class="chart-box"><canvas id="lvChReason" aria-label="NG parts by rejection reason"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Live RM consumption</h2><span class="muted">This shift</span></div>
+        <div id="lvRm"></div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel ai">
+        <div class="panel-head"><h2><span class="ai-dot" aria-hidden="true"></span>AI live insights</h2><span class="muted">Refreshes every 10 seconds</span></div>
+        <ul class="insights" id="lvInsights"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Event log</h2><span class="muted" id="lvEvCount"></span></div>
+        <ul class="events" id="lvEvents"></ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="viewMonthly" hidden>
 <section class="filters" aria-label="Filters">
   <label>Month<select id="fMonth"></select></label>
   <label>Line<select id="fLine"></select></label>
@@ -124,6 +191,7 @@
     Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan ContiTech, Pune. Demo data for discussion; figures are illustrative.
   </footer>
 </main>
+</div>
 
 <!-- Inputs drawer -->
 <div class="scrim" id="scrim" hidden></div>
@@ -158,5 +226,6 @@
 </dialog>
 
 <script src="app.js"></script>
+<script src="live.js"></script>
 </body>
 </html>
