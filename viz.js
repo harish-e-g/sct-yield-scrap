@@ -25,12 +25,16 @@ function spark(vals, color, opts){
   const hi = opts.hi? pts.filter(p=>opts.hi.has(p[2])).map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.4" fill="${color}"/>`).join("") : "";
   const tips = pts.map(p=>`<rect x="${(p[0]-step/2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}" fill="transparent"><title>${esc((opts.tips&&opts.tips[p[2]])||"")}${opts.tips?": ":""}${esc(fmt(p[3]))}</title></rect>`).join("");
   const last=pts[pts.length-1], hiV=Math.max(...nums), loV=Math.min(...nums);
+  const pkP=pts.reduce((a,p)=>p[3]>a[3]?p:a,pts[0]), pkX=pkP[0]/W*100, pkY=pkP[1]/H*100;
+  const pkWhen=(opts.tips&&opts.tips[pkP[2]])?` · ${esc(opts.tips[pkP[2]])}`:"";
+  const pkAlign = pkX>72? "right" : pkX<28? "left" : "mid";
+  const peak=`<span class="ks-pk-dot" style="left:${pkX.toFixed(2)}%;top:${pkY.toFixed(2)}%;border-color:${color}"></span><span class="ks-pk ${pkAlign}" style="left:${pkX.toFixed(2)}%;top:${pkY.toFixed(2)}%;color:${color}">Peak ${esc(fmt(pkP[3]))}${pkWhen}</span>`;
   return `<div class="ks">
     <div class="ks-cap" title="Low ${esc(fmt(loV))} · High ${esc(fmt(hiV))}"><span>${esc(opts.caption||"")}</span></div>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(opts.caption||"trend")}">
+    <div class="ks-plot">    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(opts.caption||"trend")}">
       <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".22"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
       ${ref}<path d="${area}" fill="url(#${id})"/><path d="${line}" fill="none" stroke="${color}" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-      ${hi}<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="${color}"/>${tips}</svg>
+      ${hi}<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="${color}"/>${tips}</svg>${peak}</div>
     <div class="ks-x"><span>${esc(opts.x0||"")}</span>${opts.ref!=null?`<span class="ks-ref">- - ${esc(opts.refLabel||"Ref")} ${esc(fmt(opts.ref))}</span>`:""}<span>${esc(opts.x1||"")}</span></div></div>`;
 }
 
