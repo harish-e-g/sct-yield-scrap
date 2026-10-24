@@ -18,6 +18,8 @@ h1 em{font-style:normal;color:var(--teal)}
 .lead{color:var(--ink2);line-height:1.42}
 .chips{display:flex;gap:9px;flex-wrap:wrap}
 .chips span{border:1px solid #E3DCCB;background:#fff;border-radius:999px;padding:7px 13px;font-size:14.5px;color:var(--ink2);font-weight:600}
+.tag{display:inline-block;border:1px solid #C98A16;color:#8A5E0B;font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:6px 12px;border-radius:6px;background:rgba(255,255,255,.6)}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#2A9DA8}
 .prep{display:flex;align-items:center;gap:12px}
 .prep small{font-size:12px;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;font-weight:700}
 /* mini dashboard */
@@ -66,6 +68,7 @@ const dash=(w)=>`<div class="dash" style="width:${w}px">
   <div class="row"><div class="box"><small>Output per minute</small>${bars(300,118)}</div><div class="box">${gauges}</div></div></div>`;
 const P=`<img class="pwt" src="../assets/prowesstics-logo.png" alt="Prowesstics">`;
 const SC=`<div class="prep"><small>Prepared for</small><img class="sct" src="../assets/sujan-continental-logo.png" alt="Sujan Continental"></div>`;
+const stats=`<div style="display:flex;gap:30px;margin-top:30px;padding-top:20px;border-top:1px solid #E6DBC4">${[["1,00,000","parts / shift"],["13","raw materials"],["Live","GO / NG"]].map(([a,b])=>`<div><div style="font-size:24px;font-weight:700">${a}</div><div style="font-size:12.5px;color:#7B8494">${b}</div></div>`).join("")}</div>`;
 const chips=`<div class="chips"><span>1,00,000 parts / shift</span><span>13 raw materials</span><span>AI insights</span></div>`;
 const T={
  a:`<div class="card" style="background:#FBF7EE">
@@ -106,6 +109,46 @@ const T={
       <div style="margin-top:24px">${chips}</div></div>
     <div style="position:absolute;left:64px;bottom:44px">${SC}</div>
     <div style="position:absolute;right:44px;top:112px;transform:rotate(-1.2deg)">${dash(560)}</div></div>`
+ ,d1:`<div class="card" style="background:linear-gradient(135deg,#FFFDF8 0%,#FBF4E6 60%,#F5EAD3 100%)">
+    <div style="position:absolute;left:64px;right:64px;top:48px;display:flex;justify-content:space-between;align-items:center">${P}<span class="tag">Demo · Simulated data</span></div>
+    <div style="position:absolute;left:64px;right:64px;top:104px;height:1px;background:#E6DBC4"></div>
+    <div style="position:absolute;left:64px;top:150px;width:480px">
+      <div class="eyebrow">Sujan Continental · Pune</div>
+      <h1 style="font-size:52px;margin-top:12px">Yield &amp; Scrap<br><em>Management</em></h1>
+      <p class="lead" style="font-size:20px;margin-top:18px">Live GO / NG tracking, raw material yield, scrap cost and stock for anti-vibration lines.</p>
+      ${stats}</div>
+    <div style="position:absolute;left:64px;bottom:42px">${SC}</div>
+    <div style="position:absolute;right:56px;top:150px">${dash(560)}</div></div>`
+ ,d2:`<div class="card" style="background:linear-gradient(135deg,#FFFDF8 0%,#FBF4E6 60%,#F5EAD3 100%)">
+    <div style="position:absolute;left:0;right:0;top:0;height:86px;background:rgba(255,255,255,.7);border-bottom:1px solid #E6DBC4"></div>
+    <div style="position:absolute;left:64px;right:64px;top:27px;display:flex;justify-content:space-between;align-items:center">${P}${SC}</div>
+    <div style="position:absolute;left:64px;top:140px;width:470px">
+      <span class="tag">Demo · Simulated data</span>
+      <h1 style="font-size:46px;margin-top:18px">Yield &amp; Scrap Management Dashboard</h1>
+      <p class="lead" style="font-size:19px;margin-top:16px">Raw material consumption, wastage and stock, with live GO / NG from the shop floor.</p>
+      ${stats}</div>
+    <div style="position:absolute;right:56px;top:136px">${dash(570)}</div>
+    <div style="position:absolute;left:64px;bottom:34px;font-size:13px;color:#7B8494;letter-spacing:.04em">ProVision AI · Prowesstics IT Services Pvt. Ltd.</div></div>`
+ ,d3:`<div class="card" style="background:#FBF6EC">
+    <div style="position:absolute;left:64px;top:0;width:120px;height:6px;background:#2A9DA8"></div>
+    <div style="position:absolute;left:64px;top:56px">${P}</div>
+    <div style="position:absolute;right:64px;top:58px"><span class="tag">Demo · Simulated data</span></div>
+    <div style="position:absolute;left:64px;top:132px;width:500px">
+      <h1 style="font-size:50px">Yield &amp; Scrap<br>Management</h1>
+      <div style="width:64px;height:3px;background:#C98A16;margin-top:22px"></div>
+      <p class="lead" style="font-size:20px;margin-top:20px">One live view of output, rejections, raw material yield and scrap cost, line by line.</p></div>
+    <div style="position:absolute;left:64px;right:64px;bottom:118px;height:1px;background:#E6DBC4"></div>
+    <div style="position:absolute;left:64px;right:64px;bottom:40px;display:flex;justify-content:space-between;align-items:flex-end">${SC}<div style="display:flex;gap:44px">${[["1,00,000","parts per shift"],["13","raw materials tracked"],["Live","GO / NG every second"]].map(([a,b])=>`<div><div style="font-size:26px;font-weight:700;color:#1F2A37">${a}</div><div style="font-size:12.5px;color:#7B8494">${b}</div></div>`).join("")}</div></div>
+    <div style="position:absolute;right:56px;top:112px">${dash(540)}</div></div>`
+ ,d4:`<div class="card" style="background:linear-gradient(180deg,#FFFDF8 0%,#F8EEDA 100%)">
+    <div style="position:absolute;left:64px;right:64px;top:50px;display:flex;justify-content:space-between;align-items:center">${P}<span class="tag">Demo · Simulated data</span></div>
+    <div style="position:absolute;left:64px;right:64px;top:118px;text-align:left">
+      <div class="eyebrow">Live shift view · Anti-vibration lines</div>
+      <h1 style="font-size:46px;margin-top:10px">Yield &amp; Scrap Management Dashboard</h1>
+      <p class="lead" style="font-size:19px;margin-top:10px">Output, rejections, raw material yield and scrap cost, updated every second.</p></div>
+    <div style="position:absolute;left:64px;right:64px;top:290px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      ${[["Shift output","49,040","#2A9DA8",[2,5,9,13,18,22,27,31,36,40,45,49]],["First-pass yield","97.4%","#1E8E5A",[97.1,97.6,97.3,96.9,97.5,97.8,97.2,97.4,97.6,97.3,97.5,97.4]],["NG %","2.59%","#D9534F",ngp.slice(-14)],["Material yield","94.0%","#C98A16",[93.1,93.4,93.2,93.8,93.6,94.1,93.9,94.2,94,94.3,94.1,94]]].map(([l,v,c,d])=>`<div style="background:#fff;border:1px solid #EADFC8;border-radius:12px;padding:18px 20px;box-shadow:0 10px 28px rgba(60,48,20,.08)"><div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#7B8494;text-transform:uppercase">${l}</div><div style="font-size:34px;font-weight:700;margin-top:4px">${v}</div><div style="height:64px;margin-top:8px">${VIZ.spark(d,c).replace('class="kspark"','style="width:100%;height:64px;display:block"')}</div></div>`).join("")}</div>
+    <div style="position:absolute;left:64px;right:64px;bottom:38px;display:flex;justify-content:space-between;align-items:center">${SC}<div style="font-size:13px;color:#7B8494;letter-spacing:.04em">ProVision AI · Prowesstics</div></div></div>`
 };
 document.getElementById("root").innerHTML = (V==="all"? ["a","b","c","d"] : [V]).map(k=>`<div style="margin:0 0 20px">${T[k]}</div>`).join("");
 document.body.dataset.ready="1";
