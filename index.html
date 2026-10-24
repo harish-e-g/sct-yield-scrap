@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yield & Scrap Dashboard</title>
+<meta name="description" content="AI-induced Yield and Scrap Management dashboard prepared by Prowesstics for Sujan ContiTech, Pune.">
+<link rel="stylesheet" href="styles.css">
+<script src="lib/chart.umd.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="wordmark">PROWESSTICS</div>
+    <div class="brand-sub">ProVision AI</div>
+  </div>
+  <div class="title-block">
+    <h1>Yield &amp; Scrap Management</h1>
+    <p>Sujan ContiTech, Pune &nbsp;|&nbsp; Raw material consumption, wastage and stock</p>
+  </div>
+  <div class="top-actions">
+    <button class="btn ghost" id="btnInputs" aria-controls="drawer">Edit inputs</button>
+    <button class="btn ghost" id="btnData">Upload / Download</button>
+  </div>
+</header>
+
+<section class="filters" aria-label="Filters">
+  <label>Month<select id="fMonth"></select></label>
+  <label>Line<select id="fLine"></select></label>
+  <label>Variant<select id="fVariant"></select></label>
+  <label>Raw material<select id="fRm"></select></label>
+  <span class="filters-note" id="filterNote"></span>
+  <button class="btn link" id="btnReset" title="Restore the demo data">Reset demo data</button>
+</section>
+
+<main>
+  <section class="kpis" id="kpis" aria-label="Key metrics"></section>
+
+  <section class="grid-main">
+    <div class="panel" id="prodPanel">
+      <div class="panel-head">
+        <h2>Production details</h2>
+        <span class="muted" id="prodMonthLbl"></span>
+      </div>
+      <div class="lines" id="lineCards"></div>
+    </div>
+
+    <div class="col-right">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Available RM stock</h2>
+          <span class="muted" id="stockMonthLbl"></span>
+        </div>
+        <div id="stockTable"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Scrap % control chart</h2>
+          <div class="seg" role="group" aria-label="Control limit mode">
+            <button data-lim="auto" class="on">Auto (3σ)</button>
+            <button data-lim="manual">Manual</button>
+          </div>
+        </div>
+        <div class="limits-row" id="limitsRow">
+          <label>USL %<input type="number" step="0.1" id="inUsl"></label>
+          <label>LSL %<input type="number" step="0.1" id="inLsl"></label>
+        </div>
+        <div class="chart-box tall"><canvas id="chSpc" aria-label="Monthly scrap percent with average, USL and LSL"></canvas></div>
+        <p class="chart-foot" id="spcFoot"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-3">
+    <div class="panel">
+      <div class="panel-head"><h2>Produced parts vs month</h2></div>
+      <div class="chart-box"><canvas id="chParts" aria-label="Good parts produced per month by line"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Wastage kg by raw material</h2></div>
+      <div class="chart-box"><canvas id="chWaste" aria-label="Wastage kilograms per month by raw material"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Set vs actual consumption</h2><span class="muted" id="svaLbl"></span></div>
+      <div class="chart-box"><canvas id="chSva" aria-label="Set versus actual RM consumption for selected month"></canvas></div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="panel ai">
+      <div class="panel-head">
+        <h2><span class="ai-dot" aria-hidden="true"></span>AI insights</h2>
+        <span class="muted">Auto-generated from the current data</span>
+      </div>
+      <ul class="insights" id="insights"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>What-if simulator</h2><span class="muted" id="wiLbl"></span></div>
+      <div class="slider">
+        <div class="slider-top"><span>Reduce wastage by</span><b id="wiWasteVal">20%</b></div>
+        <input type="range" id="wiWaste" min="0" max="60" step="5" value="20">
+      </div>
+      <div class="slider">
+        <div class="slider-top"><span>RM price change</span><b id="wiPriceVal">0%</b></div>
+        <input type="range" id="wiPrice" min="-20" max="20" step="1" value="0">
+      </div>
+      <div class="wi-results" id="wiResults"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Data table</h2>
+      <button class="btn ghost sm" id="btnTable" aria-expanded="false">Show table</button>
+    </div>
+    <div id="dataTable" class="table-wrap" hidden></div>
+  </section>
+
+  <footer class="foot">
+    Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan ContiTech, Pune. Demo data for discussion; figures are illustrative.
+  </footer>
+</main>
+
+<!-- Inputs drawer -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Edit inputs">
+  <div class="drawer-head">
+    <h2>Edit inputs</h2>
+    <button class="btn ghost sm" id="btnClose">Close</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="prod" class="on">Production</button>
+    <button role="tab" data-tab="stock">Stock &amp; inward</button>
+    <button role="tab" data-tab="std">Part weights &amp; rates</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <p class="drawer-foot">Changes apply instantly and stay saved in this browser.</p>
+</aside>
+
+<!-- Upload / download dialog -->
+<dialog id="dlgData">
+  <h2>Upload or download data</h2>
+  <ol class="steps">
+    <li><b>Download the template</b> (Excel, 4 sheets: Production, Part Weights, Stock, Rates). It is pre-filled with the current data.</li>
+    <li>Replace the numbers with real plant data. Keep the column headings as they are.</li>
+    <li><b>Upload</b> the file. The whole dashboard refreshes.</li>
+  </ol>
+  <div class="dlg-actions">
+    <button class="btn" id="btnTemplate">Download template (.xlsx)</button>
+    <label class="btn ghost file">Upload .xlsx<input type="file" id="fileIn" accept=".xlsx,.xls,.csv"></label>
+  </div>
+  <p class="muted" id="uploadMsg"></p>
+  <div class="dlg-actions end"><button class="btn ghost" id="btnDlgClose">Close</button></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
