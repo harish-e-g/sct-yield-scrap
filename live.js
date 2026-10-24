@@ -6,16 +6,12 @@
 const SHIFT_SEC = 8*3600;
 const USL = 3.5;                      // NG % upper limit
 const LINES = [
-  {id:"Line 1", variant:"5220 Mass Damper", target:45000, baseNg:0.017, std:{RC:0.420, IS:0.180, OS:0.950, BA:0.0025}},
-  {id:"Line 2", variant:"Suspension Bush SB-140", target:55000, baseNg:0.021, std:{RC:0.160, IS:0.120, OS:0.200, BA:0.0012}}
+  {id:"Line 1", variant:AVS.SPECS["5220"].name,  target:45000, baseNg:0.017, std:AVS.buildStd(AVS.SPECS["5220"])},
+  {id:"Line 2", variant:AVS.SPECS["BS140"].name, target:55000, baseNg:0.021, std:AVS.buildStd(AVS.SPECS["BS140"])}
 ];
 const TARGET = LINES.reduce((s,l)=>s+l.target,0);
-const RMS = [
-  {id:"RC", name:"Rubber Compound (NR)",   rate:245,  loss:0.12,  color:"#2F5BA8"},  // flash, runner, scorched compound
-  {id:"IS", name:"Inner Metal Sleeve",     rate:95,   loss:0.008, color:"#1F9AA6"},  // pre-treatment rejects
-  {id:"OS", name:"Outer Sleeve / Bracket", rate:160,  loss:0.008, color:"#C98A16"},
-  {id:"BA", name:"Bonding Agent",          rate:2900, loss:0.20,  color:"#8E5BB5"}   // spray overspray, pot life
-];
+const RMS = AVS.RMS.map(m=>({id:m.id, name:m.name, rate:m.rate, group:m.group, loss:(m.loss[0]+m.loss[1])/2,
+  color:(AVS.GROUPS.find(g=>g.id===m.group)||{color:"#8C97AB"}).color}));
 const REASONS = [
   ["Flash / excess rubber", 30, "check mould parting line, vents and clamp pressure"],
   ["Rubber-to-metal bond failure", 20, "check sleeve shot blasting, phosphating and bonding agent film thickness"],
@@ -84,7 +80,7 @@ function stepSecond(){
     st.go+=go; st.ng+=ng; st.minGo[idx]+=go; st.minNg[idx]+=ng;
     const b5 = Math.min(5759, Math.floor((simMs - S.start)/5000)); st.sGo[b5]+=go; st.sNg[b5]+=ng;
     for(let k=0;k<ng;k++){ const r = st.exc&&rand()<0.65? st.exc.reason : pickReason(); st.reasons[r]++; }
-    RMS.forEach(r=>{ const sd=L.std[r.id], a=n*sd*(1+r.loss*(0.8+rand()*0.4)); S.rm[r.id].set += go*sd; S.rm[r.id].actual += a; st.rm[r.id].set += go*sd; st.rm[r.id].actual += a; });
+    RMS.forEach(r=>{ const sd=L.std[r.id]||0; if(!sd) return; const a=n*sd*(1+r.loss*(0.8+rand()*0.4)); S.rm[r.id].set += go*sd; S.rm[r.id].actual += a; st.rm[r.id].set += go*sd; st.rm[r.id].actual += a; });
     // USL breach alert on rolling 5 minutes
     if(st.exc && !st.alerted && idx>=1){
       const r5 = rollNg(i,5);
@@ -235,14 +231,28 @@ function renderReasons(){
 }
 
 function renderRm(){
-  let tw=0,tc=0;
-  const rows = RMS.map(r=>{const m=rmOf(r.id), w=m.actual-m.set, c=w*r.rate; tw+=w; tc+=c;
-    return `<tr><td><span class="rm-name"><span class="sw" style="background:${r.color}"></span>${r.name}</span></td><td>${nf.format(m.set)}</td><td>${nf.format(m.actual)}</td><td><b>${nf.format(w)}</b></td><td>${inr(c)}</td></tr>`;}).join("");
-  const ta = RMS.reduce((s,r)=>s+rmOf(r.id).actual,0), ts = RMS.reduce((s,r)=>s+rmOf(r.id).set,0);
-  $("lvRm").innerHTML = `<div class="table-wrap"><table class="stock-table"><thead><tr><th>Raw material</th><th>Set kg</th><th>Actual kg</th><th>Wastage kg</th><th>Cost</th></tr></thead><tbody>${rows}
+  const open = new Set([...document.querySelectorAll("#lvRm .lv-grp.open")].map(e=>e.dataset.g));
+  const f1=x=>x>=100? nf.format(x) : x.toFixed(1);
+  let tw=0,tc=0,ta=0,ts=0;
+  const body = AVS.GROUPS.map(g=>{
+    const ms = RMS.filter(r=>r.group===g.id).map(r=>{const m=rmOf(r.id); return {r, set:m.set, act:m.actual, w:m.actual-m.set, c:(m.actual-m.set)*r.rate};}).filter(x=>x.act>0);
+    if(!ms.length) return "";
+    const G = ms.reduce((o,x)=>({set:o.set+x.set,act:o.act+x.act,w:o.w+x.w,c:o.c+x.c}),{set:0,act:0,w:0,c:0});
+    tw+=G.w; tc+=G.c; ta+=G.act; ts+=G.set;
+    return `<tr class="grp-row lv-grp" data-g="${g.id}"><td><span class="rm-name"><span class="caret" aria-hidden="true">▸</span><span class="sw" style="background:${g.color}"></span>${g.name}</span></td><td>${f1(G.set)}</td><td>${f1(G.act)}</td><td><b>${f1(G.w)}</b></td><td>${inr(G.c)}</td></tr>`+
+      ms.map(x=>`<tr class="mat-row" data-g="${g.id}" hidden><td><span class="rm-name sub">${x.r.name}</span></td><td>${f1(x.set)}</td><td>${f1(x.act)}</td><td>${f1(x.w)}</td><td>${inr(x.c)}</td></tr>`).join("");
+  }).join("");
+  $("lvRm").innerHTML = `<div class="table-wrap"><table class="stock-table"><thead><tr><th>Material group</th><th>Set kg</th><th>Actual kg</th><th>Wastage kg</th><th>Cost</th></tr></thead><tbody>${body}
     <tr><td><b>Total</b></td><td><b>${nf.format(ts)}</b></td><td><b>${nf.format(ta)}</b></td><td><b>${nf.format(tw)}</b></td><td><b>${inr(tc)}</b></td></tr></tbody></table></div>
-    <p class="chart-foot">Material yield this shift <b>${ta?(ts/ta*100).toFixed(1):"0.0"}%</b>. Set = GO parts × standard kg per part; wastage = actual − set.</p>`;
+    <p class="chart-foot">Click a group to see its materials. Material yield this shift <b>${ta?(ts/ta*100).toFixed(1):"0.0"}%</b>. Set = GO parts × standard kg per part; wastage = actual − set.</p>`;
+  open.forEach(g=>toggleGrp(g,true));
 }
+function toggleGrp(g, on){
+  const row=document.querySelector(`#lvRm .lv-grp[data-g="${g}"]`); if(!row) return;
+  const o = on ?? !row.classList.contains("open"); row.classList.toggle("open",o);
+  document.querySelectorAll(`#lvRm .mat-row[data-g="${g}"]`).forEach(r=>r.hidden=!o);
+}
+$("lvRm").addEventListener("click",e=>{const r=e.target.closest(".lv-grp"); if(r) toggleGrp(r.dataset.g);});
 
 function renderInsights(){
   const t=tot(), n=t.go+t.ng, items=[];
@@ -320,8 +330,8 @@ function exportData(){
   for(let m=0;m<=e;m++){ const row=[hhmm(S.start+m*60000)]; ix.forEach(i=>row.push(S.lines[i].minGo[m],S.lines[i].minNg[m])); perMin.push(row); }
   const totNg=t.ng||1, reasons=[["NG reason","Parts","Share %"]];
   REASONS.map((r,k)=>[r[0],ix.reduce((a,i)=>a+S.lines[i].reasons[k],0)]).sort((a,b)=>b[1]-a[1]).forEach(([nm,c])=>reasons.push([nm,c,Math.round(c/totNg*1000)/10]));
-  const rm=[["Raw material","Set kg","Actual kg","Wastage kg","Rate INR/kg","Scrap cost INR"]];
-  RMS.forEach(r=>{const m=rmOf(r.id); rm.push([r.name,Math.round(m.set*10)/10,Math.round(m.actual*10)/10,Math.round((m.actual-m.set)*10)/10,r.rate,Math.round((m.actual-m.set)*r.rate)]);});
+  const rm=[["Group","Raw material","Set kg","Actual kg","Wastage kg","Rate INR/kg","Scrap cost INR"]];
+  RMS.forEach(r=>{const m=rmOf(r.id); if(!m.actual) return; rm.push([(AVS.GROUPS.find(g=>g.id===r.group)||{}).name,r.name,Math.round(m.set*10)/10,Math.round(m.actual*10)/10,Math.round((m.actual-m.set)*10)/10,r.rate,Math.round((m.actual-m.set)*r.rate)]);});
   const ev=[["Time","Level","Event"]]; events.forEach(x=>ev.push([hhmmss(x.t),x.level,x.text]));
   return {title:"Live shift", period:`${S.name}, ${hhmmss(simMs)} IST`, sheets:[["Summary",summary],["Per Minute",perMin],["NG Reasons",reasons],["RM Consumption",rm],["Event Log",ev]]};
 }

@@ -123,7 +123,7 @@ async function offline(){
   let html = await get("index.html");
   const css = await get("styles.css");
   html = html.replace(/<link rel="stylesheet" href="styles\.css[^"]*">/, ()=>"<style>\n"+css+"\n</style>");
-  for(const s of ["lib/chart.umd.min.js","lib/xlsx.full.min.js","lib/jspdf.umd.min.js","lib/html2canvas.min.js","app.js","live.js","export.js"]){
+  for(const s of ["lib/chart.umd.min.js","lib/xlsx.full.min.js","lib/jspdf.umd.min.js","lib/html2canvas.min.js","materials.js","app.js","live.js","export.js"]){
     const js=(await get(s)).replace(/<\/script>/g,"<\\/script>");
     const re=new RegExp('<script src="'+s.replace(/[.\/]/g,"\\$&")+'[^"]*"( defer)?></script>');
     let rep="<script>\n"+js+"\n</script>";

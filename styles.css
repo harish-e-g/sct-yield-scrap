@@ -289,3 +289,13 @@ dialog h2{font-size:17px;color:var(--navy);margin-bottom:10px}
 .dl-menu button b{font-size:13.5px;color:var(--navy)}
 .dl-menu button span{font-size:12px;color:var(--ink-3)}
 @media (max-width:640px){.dl-menu{right:auto;left:0}}
+.stock-table tr.grp-row td{background:var(--surface-2);font-weight:700;color:var(--navy);font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px}
+.stock-table tr.grp-row.dim td{opacity:.45}
+.rm-name.sub{padding-left:18px;font-size:12.8px}
+#lvRm .lv-grp{cursor:pointer}
+#lvRm .lv-grp td{text-transform:none;letter-spacing:0;font-size:13px}
+#lvRm .caret{display:inline-block;transition:transform .2s;color:var(--ink-3);width:10px}
+#lvRm .lv-grp.open .caret{transform:rotate(90deg)}
+.stock-table.master td.left,.stock-table.master th.left{text-align:left;white-space:normal}
+.stock-table.master td{font-size:12.8px}
+.pill.idle{background:#EEF1F6;color:var(--ink-3)}
