@@ -67,11 +67,11 @@ function stepSecond(){
     const st = S.lines[i];
     // stoppages
     if(st.stop && simMs>=st.stop.until){ log("info", `${L.id} running again after ${st.stop.why}.`); st.stop=null; }
-    if(!st.stop && rand()<1/5400){ const why=STOPS[Math.floor(rand()*STOPS.length)]; st.stop={until:simMs+(3+rand()*5)*60000, why}; log("warn", `${L.id} stopped: ${why}.`); }
+    if(!st.stop && rand()<1/5400){ const why=STOPS[Math.floor(rand()*STOPS.length)]; st.stop={until:simMs+(3+rand()*5)*60000, why}; st.stops=(st.stops||0)+1; log("warn", `${L.id} stopped: ${why}.`); }
     // NG excursions
     if(st.exc && simMs>=st.exc.until){ log("good", `${L.id} NG back to normal after ${REASONS[st.exc.reason][0].toLowerCase()} issue was corrected.`); st.exc=null; st.alerted=false; }
     if(!st.exc && rand()<1/2700){ st.exc={until:simMs+(6+rand()*9)*60000, mult:2.4+rand()*1.6, reason:pickReason()}; log("warn", `${L.id} NG rising, mostly ${REASONS[st.exc.reason][0].toLowerCase()}.`); }
-    if(st.stop) return;
+    if(st.stop){ st.down=(st.down||0)+1; return; }
     const lambda = L.target/SHIFT_SEC*(0.93+rand()*0.14);
     const n = poisson(lambda);
     const p = Math.min(0.25, L.baseNg*(st.exc?st.exc.mult:1));
@@ -307,10 +307,89 @@ function renderEvents(){
   events.forEach(e=>e.fresh=false);
 }
 
+/* ---------- Line vs line comparison ---------- */
+const LC = ["#2F5BA8","#1F9AA6"];
+function lineStats(i){
+  const L=LINES[i], st=S.lines[i], n=st.go+st.ng, el=(simMs-S.start)/1000, frac=el/SHIFT_SEC;
+  const exp=L.target*frac, r5=rollNg(i,5), r30=rollNg(i,30), minsLeft=(S.end-simMs)/60000;
+  let set=0,act=0,cost=0; RMS.forEach(r=>{const m=st.rm[r.id]; set+=m.set; act+=m.actual; cost+=(m.actual-m.set)*r.rate;});
+  const topK=st.reasons.indexOf(Math.max(...st.reasons));
+  const plan=L.target/480, runMin=Math.max(1,(el-(st.down||0))/60);
+  return {L, n, go:st.go, ng:st.ng, target:L.target, exp, att:exp?n/exp*100:0, ngPct:n?st.ng/n*100:0, ng5:r5.pct, rate5:r5.perMin, plan,
+    speed:r5.perMin/plan*100, fpy:n?st.go/n*100:0, my:act?set/act*100:0, waste:act-set, cost, cpk:n?cost/n*1000:0,
+    proj:n+r30.perMin*minsLeft, stops:st.stops||0, down:(st.down||0)/60, avail:el? (1-(st.down||0)/el)*100:100,
+    top:st.ng?REASONS[topK][0]:"-", topShare:st.ng?st.reasons[topK]/st.ng*100:0,
+    status: st.stop? "Stopped" : r5.pct>USL? "NG alert" : "Running"};
+}
+function renderCompare(){
+  const a=lineStats(0), b=lineStats(1);
+  const n0=v=>nf.format(Math.round(v)), p1=v=>v.toFixed(1)+"%", p2=v=>v.toFixed(2)+"%";
+  // [label, key, fmt, higherIsBetter (true/false/null = neutral), unitDiff]
+  const rows=[
+    ["Status","status",x=>x,null],
+    ["Shift target","target",n0,null],
+    ["Parts produced","n",n0,null],
+    ["Due by now","exp",n0,null],
+    ["Plan attainment","att",p1,true,"pts"],
+    ["Projected end of shift","proj",n0,null],
+    ["GO parts","go",n0,null],
+    ["NG parts","ng",n0,null],
+    ["NG % (shift)","ngPct",p2,false,"pts"],
+    ["NG % (last 5 min)","ng5",p2,false,"pts"],
+    ["First-pass yield","fpy",p1,true,"pts"],
+    ["Run rate (5 min), parts/min","rate5",n0,null],
+    ["Speed vs plan","speed",p1,true,"pts"],
+    ["Availability (uptime)","avail",p1,true,"pts"],
+    ["Stoppages","stops",n0,false,""],
+    ["Downtime, minutes","down",v=>v.toFixed(1),false,"min"],
+    ["Material yield","my",p1,true,"pts"],
+    ["RM wasted, kg","waste",n0,null],
+    ["Scrap cost","cost",inr,null],
+    ["Scrap cost per 1,000 parts","cpk",inr,false,""],
+    ["Top NG reason","top",x=>x,null]
+  ];
+  const body=rows.map(([lbl,k,f,hib,u])=>{
+    const va=a[k], vb=b[k];
+    let ca="",cb="",verdict="";
+    if(hib!==null && hib!==undefined && isFinite(va) && isFinite(vb) && Math.abs(va-vb)>1e-9){
+      const aBetter = hib? va>vb : va<vb;
+      ca=aBetter?"win":"lose"; cb=aBetter?"lose":"win";
+      const d=Math.abs(va-vb), ds = u==="pts"? d.toFixed(u==="pts"&&k.startsWith("ng")?2:1)+" pts" : u==="min"? d.toFixed(1)+" min" : (k==="cpk"? inr(d) : n0(d));
+      verdict=`<span class="lc-pill" style="--c:${LC[aBetter?0:1]}">${aBetter?LINES[0].id:LINES[1].id} better by ${ds}</span>`;
+    } else if(k==="status"){ ca=a.status==="Running"?"win":"lose"; cb=b.status==="Running"?"win":"lose"; }
+    let bar="";
+    if(typeof va==="number" && typeof vb==="number" && (va+vb)>0){ const m=Math.max(Math.abs(va),Math.abs(vb))||1;
+      bar=`<div class="lc-bars"><i style="width:${(Math.abs(va)/m*100).toFixed(1)}%;background:${LC[0]}"></i><i style="width:${(Math.abs(vb)/m*100).toFixed(1)}%;background:${LC[1]}"></i></div>`; }
+    const extra = k==="top"? [` <span class="muted">(${a.topShare.toFixed(0)}%)</span>`,` <span class="muted">(${b.topShare.toFixed(0)}%)</span>`] : ["",""];
+    return `<tr><th>${lbl}</th><td class="${ca}">${f(va)}${extra[0]}</td><td class="${cb}">${f(vb)}${extra[1]}</td><td class="lc-bar-cell">${bar}</td><td>${verdict}</td></tr>`;
+  }).join("");
+  const wins=rows.reduce((o,[,k,,hib])=>{ if(hib===null||hib===undefined) return o; const va=a[k],vb=b[k]; if(Math.abs(va-vb)<1e-9) return o; ((hib?va>vb:va<vb)?o[0]++:o[1]++); return o; },[0,0]);
+  $("lvCompare").innerHTML = `<div class="lc-score">
+      <div style="--c:${LC[0]}"><b>${LINES[0].id}</b><span>${LINES[0].variant}</span><em>${wins[0]} of ${wins[0]+wins[1]} KPIs ahead</em></div>
+      <div class="vs">vs</div>
+      <div style="--c:${LC[1]}"><b>${LINES[1].id}</b><span>${LINES[1].variant}</span><em>${wins[1]} of ${wins[0]+wins[1]} KPIs ahead</em></div></div>
+    <div class="table-wrap"><table class="lc-table"><thead><tr><th>KPI</th><th style="color:${LC[0]}">${LINES[0].id}</th><th style="color:${LC[1]}">${LINES[1].id}</th><th class="lc-bar-cell">Side by side</th><th>Who is ahead</th></tr></thead><tbody>${body}</tbody></table></div>`;
+  // charts: NG % per 5 min and output per minute, both lines
+  const e=curIdx(), nb=Math.floor(e/5)+1, l5=[], ngs=[[],[]];
+  for(let k=0;k<nb;k++){ l5.push(hhmm(S.start+k*300000)); [0,1].forEach(i=>{ let g=0,n=0; for(let m=k*5;m<Math.min(k*5+5,e+1);m++){ g+=S.lines[i].minGo[m]; n+=S.lines[i].minNg[m]; } ngs[i].push(g+n? n/(g+n)*100 : null); }); }
+  upsert("lvChCmpNg",{type:"line",data:{labels:l5,datasets:[
+    ...[0,1].map(i=>({label:LINES[i].id,data:ngs[i],borderColor:LC[i],backgroundColor:LC[i],borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:0.25,pointStyle:"circle"})),
+    {label:"USL",data:l5.map(()=>USL),borderColor:C.ng,borderWidth:1.5,borderDash:[6,4],pointRadius:0,pointHoverRadius:0,pointStyle:"line"}]},
+    options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y==null?"-":c.parsed.y.toFixed(2)+"%"}`}}},
+      scales:{x:{grid:NOGRID,ticks:{maxTicksLimit:8,maxRotation:0}},y:{grid:GRID,suggestedMin:0,ticks:{callback:v=>v+"%"}}}}});
+  const s=Math.max(0,e-59), lm=[], outs=[[],[]];
+  for(let m=s;m<=e;m++){ lm.push(hhmm(S.start+m*60000)); [0,1].forEach(i=>outs[i].push(S.lines[i].minGo[m]+S.lines[i].minNg[m])); }
+  upsert("lvChCmpOut",{type:"line",data:{labels:lm,datasets:[
+    ...[0,1].map(i=>({label:LINES[i].id,data:outs[i],borderColor:LC[i],backgroundColor:LC[i],borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:0.25,pointStyle:"circle"})),
+    ...[0,1].map(i=>({label:LINES[i].id+" plan",data:lm.map(()=>LINES[i].target/480),borderColor:LC[i],borderWidth:1,borderDash:[5,4],pointRadius:0,pointHoverRadius:0,pointStyle:"line"}))]},
+    options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf.format(c.parsed.y)} parts/min`}}},
+      scales:{x:{grid:NOGRID,ticks:{maxTicksLimit:8,maxRotation:0}},y:{grid:GRID,beginAtZero:true}}}});
+}
+
 /* ---------- Loop ---------- */
 let lastInsight = 0, lastEventsLen = -1;
 function frame(full){
-  renderHeader(); renderKpis(); renderLines(); renderStream(); renderRateChart(); renderNgChart(); renderReasons(); renderRm();
+  renderHeader(); renderKpis(); renderCompare(); renderLines(); renderStream(); renderRateChart(); renderNgChart(); renderReasons(); renderRm();
   document.querySelectorAll("#lvSel button").forEach(x=>x.classList.toggle("on",x.dataset.sel===sel));
   const now=performance.now();
   if(full || now-lastInsight>10000){ renderInsights(); lastInsight=now; }
@@ -357,7 +436,13 @@ function exportData(){
   const rm=[["Group","Raw material","Set kg","Actual kg","Wastage kg","Rate INR/kg","Scrap cost INR"]];
   RMS.forEach(r=>{const m=rmOf(r.id); if(!m.actual) return; rm.push([(AVS.GROUPS.find(g=>g.id===r.group)||{}).name,r.name,Math.round(m.set*10)/10,Math.round(m.actual*10)/10,Math.round((m.actual-m.set)*10)/10,r.rate,Math.round((m.actual-m.set)*r.rate)]);});
   const ev=[["Time","Level","Event"]]; events.forEach(x=>ev.push([hhmmss(x.t),x.level,x.text]));
-  return {title:"Live shift", period:`${S.name}, ${hhmmss(simMs)} IST`, sheets:[["Summary",summary],["Per Minute",perMin],["NG Reasons",reasons],["RM Consumption",rm],["Event Log",ev]]};
+  const a=lineStats(0), b=lineStats(1);
+  const cmp=[["KPI",LINES[0].id,LINES[1].id],["Variant",LINES[0].variant,LINES[1].variant],["Status",a.status,b.status],["Shift target",a.target,b.target],["Parts produced",a.n,b.n],["Due by now",Math.round(a.exp),Math.round(b.exp)],
+    ["Plan attainment %",+a.att.toFixed(1),+b.att.toFixed(1)],["Projected end of shift",Math.round(a.proj),Math.round(b.proj)],["GO parts",a.go,b.go],["NG parts",a.ng,b.ng],["NG % (shift)",+a.ngPct.toFixed(2),+b.ngPct.toFixed(2)],
+    ["NG % (last 5 min)",+a.ng5.toFixed(2),+b.ng5.toFixed(2)],["First-pass yield %",+a.fpy.toFixed(2),+b.fpy.toFixed(2)],["Run rate parts/min (5 min)",Math.round(a.rate5),Math.round(b.rate5)],["Speed vs plan %",+a.speed.toFixed(1),+b.speed.toFixed(1)],
+    ["Availability %",+a.avail.toFixed(1),+b.avail.toFixed(1)],["Stoppages",a.stops,b.stops],["Downtime minutes",+a.down.toFixed(1),+b.down.toFixed(1)],["Material yield %",+a.my.toFixed(2),+b.my.toFixed(2)],
+    ["RM wasted kg",Math.round(a.waste),Math.round(b.waste)],["Scrap cost INR",Math.round(a.cost),Math.round(b.cost)],["Scrap cost per 1,000 parts INR",Math.round(a.cpk),Math.round(b.cpk)],["Top NG reason",a.top,b.top]];
+  return {title:"Live shift", period:`${S.name}, ${hhmmss(simMs)} IST`, sheets:[["Summary",summary],["Line Comparison",cmp],["Per Minute",perMin],["NG Reasons",reasons],["RM Consumption",rm],["Event Log",ev]]};
 }
 window.__live={exportData};
 

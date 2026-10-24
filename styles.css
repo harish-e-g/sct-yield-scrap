@@ -349,3 +349,26 @@ b,strong,th,h1,h2,h3{font-weight:600}
 .ks-pk.right{transform:translate(-100%,-135%)}
 .ks-pk.left{transform:translate(0,-135%)}
 .ks-pk-dot{position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;border:2px solid;transform:translate(-50%,-50%);pointer-events:none}
+
+/* Line vs line */
+.lc-score{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-bottom:14px}
+.lc-score>div:not(.vs){border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column}
+.lc-score b{font-size:16px;color:var(--c)}
+.lc-score span{font-size:12.5px;color:var(--ink-2)}
+.lc-score em{font-style:normal;font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px}
+.lc-score .vs{font-weight:600;color:var(--ink-3);font-size:13px;text-transform:uppercase;letter-spacing:.1em}
+.lc-table{width:100%;border-collapse:collapse;font-size:13px}
+.lc-table th,.lc-table td{padding:7px 10px;border-bottom:1px solid #EEF1F6;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lc-table thead th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.lc-table th:first-child{text-align:left;font-weight:600;color:var(--ink-2)}
+.lc-table td:last-child,.lc-table th:last-child{text-align:left}
+.lc-table td.win{color:var(--ink);font-weight:600}
+.lc-table td.win::before{content:"▲ ";color:var(--good);font-size:10px}
+.lc-table td.lose{color:var(--ink-2)}
+.lc-bar-cell{width:22%}
+.lc-bars{display:flex;flex-direction:column;gap:3px}
+.lc-bars i{display:block;height:6px;border-radius:3px;transition:width .5s}
+.lc-pill{display:inline-block;font-size:11.5px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff);border-radius:999px;padding:2px 9px}
+.lc-charts{margin-top:16px}
+.lc-sub{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+@media (max-width:640px){.lc-bar-cell{display:none}.lc-score{grid-template-columns:1fr}.lc-score .vs{text-align:center}}
