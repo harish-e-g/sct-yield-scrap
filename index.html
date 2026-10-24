@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta name="build" content="20261024121437">
+<meta name="build" content="20261024121736">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yield & Scrap Dashboard</title>
 <meta name="description" content="AI-induced Yield and Scrap Management dashboard prepared by Prowesstics for Sujan Continental, Pune.">
-<link rel="stylesheet" href="styles.css?v=20261024121437">
-<script src="lib/chart.umd.min.js?v=20261024121437"></script>
-<script src="lib/xlsx.full.min.js?v=20261024121437"></script>
+<link rel="stylesheet" href="styles.css?v=20261024121736">
+<script src="lib/chart.umd.min.js?v=20261024121736"></script>
+<script src="lib/xlsx.full.min.js?v=20261024121736"></script>
 </head>
 <body>
 
@@ -20,7 +20,7 @@
 
 <header class="topbar">
   <div class="brand">
-    <img src="assets/prowesstics-logo.png?v=20261024121437" alt="Prowesstics" class="logo-pwt" width="640" height="83">
+    <img src="assets/prowesstics-logo.png?v=20261024121736" alt="Prowesstics" class="logo-pwt" width="640" height="83">
     <div class="brand-sub">ProVision AI</div>
   </div>
   <div class="title-block">
@@ -29,7 +29,7 @@
   </div>
   <div class="client">
     <span class="client-lbl">Prepared for</span>
-    <img src="assets/sujan-continental-logo.png?v=20261024121437" alt="Sujan Continental" class="logo-sct" width="640" height="81">
+    <img src="assets/sujan-continental-logo.png?v=20261024121736" alt="Sujan Continental" class="logo-sct" width="640" height="81">
   </div>
   <div class="top-actions">
     <button class="btn ghost" id="btnInputs" aria-controls="drawer">Edit inputs</button>
@@ -118,7 +118,12 @@
 
 <div id="viewMonthly" hidden>
 <section class="filters" aria-label="Filters">
-  <label>Month<select id="fMonth"></select></label>
+  <label>Period<select id="fMode"><option value="month">Single month</option><option value="cum">Cumulative (range)</option></select></label>
+  <label id="fFromWrap" hidden>From<select id="fFrom"></select></label>
+  <label><span id="fMonthLbl">Month</span><select id="fMonth"></select></label>
+  <div class="presets" id="fPresets" hidden role="group" aria-label="Quick ranges">
+    <button data-p="fy">FY to date</button><button data-p="3">Last 3 M</button><button data-p="6">Last 6 M</button><button data-p="12">All 12 M</button>
+  </div>
   <label>Line<select id="fLine"></select></label>
   <label>Variant<select id="fVariant"></select></label>
   <label>Raw material<select id="fRm"></select></label>
@@ -167,11 +172,11 @@
 
   <section class="grid-3">
     <div class="panel">
-      <div class="panel-head"><h2>Produced parts vs month</h2></div>
+      <div class="panel-head"><h2 id="partsTitle">Produced parts vs month</h2></div>
       <div class="chart-box"><canvas id="chParts" aria-label="Good parts produced per month by line"></canvas></div>
     </div>
     <div class="panel">
-      <div class="panel-head"><h2>Wastage kg by raw material</h2></div>
+      <div class="panel-head"><h2 id="wasteTitle">Wastage kg by raw material</h2></div>
       <div class="chart-box"><canvas id="chWaste" aria-label="Wastage kilograms per month by raw material"></canvas></div>
     </div>
     <div class="panel">
@@ -249,9 +254,9 @@
   <div class="dlg-actions end"><button class="btn ghost" id="btnDlgClose">Close</button></div>
 </dialog>
 
-<script src="app.js?v=20261024121437"></script>
-<script src="live.js?v=20261024121437"></script>
+<script src="app.js?v=20261024121736"></script>
+<script src="live.js?v=20261024121736"></script>
 <div class="toast" id="toast" hidden></div>
-<script src="refresh.js?v=20261024121437"></script>
+<script src="refresh.js?v=20261024121736"></script>
 </body>
 </html>

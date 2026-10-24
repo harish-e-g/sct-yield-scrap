@@ -60,7 +60,7 @@ function buildDemo(){
 
 /* ---------- State ---------- */
 let S = load() || buildDemo();
-const ui = {month:S.months[S.months.length-1], line:"all", variant:"all", rm:"all", wiWaste:20, wiPrice:0, tab:"prod"};
+const ui = {mode:"month", from:null, month:S.months[S.months.length-1], line:"all", variant:"all", rm:"all", wiWaste:20, wiPrice:0, tab:"prod"};
 
 function load(){try{const t=localStorage.getItem(STORE_KEY);return t?JSON.parse(t):null;}catch(e){return null;}}
 function save(){try{localStorage.setItem(STORE_KEY, JSON.stringify(S));}catch(e){}}
@@ -90,6 +90,25 @@ const rate = id=>(rmById(id)?.rate||0)*(1+ui.wiPrice/100);
 function rowsFor(month){
   return S.prod.filter(p=>(!month||p.month===month)&&(ui.line==="all"||p.line===ui.line)&&(ui.variant==="all"||p.variant===ui.variant));
 }
+/* ---------- Period (single month or cumulative range) ---------- */
+function periodMonths(){
+  if(ui.mode!=="cum") return [ui.month];
+  let a=S.months.indexOf(ui.from), b=S.months.indexOf(ui.month); if(a<0)a=0; if(a>b){const t=a;a=b;b=t;}
+  return S.months.slice(a,b+1);
+}
+const rowsPeriod = ()=>periodMonths().flatMap(m=>rowsFor(m));
+function prevPeriodRows(){
+  const pm=periodMonths(), n=pm.length, s=S.months.indexOf(pm[0]);
+  if(s-n<0) return null;
+  return S.months.slice(s-n,s).flatMap(m=>rowsFor(m));
+}
+function periodLabel(short){
+  const pm=periodMonths();
+  if(pm.length===1) return monthLabel(pm[0]);
+  return `${monthLabel(pm[0])} to ${monthLabel(pm[pm.length-1])}`+(short?"":` (${pm.length} months, cumulative)`);
+}
+const prevWord = ()=> ui.mode==="cum"&&periodMonths().length>1 ? `vs previous ${periodMonths().length} months` : "vs last month";
+function fyStart(m){ const [y,mo]=m.split("-").map(Number); const fy = mo>=4? y : y-1; const s=fy+"-04"; return S.months.find(x=>x>=s)||S.months[0]; }
 function rmList(){return ui.rm==="all"?S.rms.map(r=>r.id):[ui.rm];}
 
 function agg(rows){
@@ -148,29 +167,39 @@ function opt(sel, items, val){sel.innerHTML = items.map(([v,t])=>`<option value=
 function renderFilters(){
   if(!S.months.includes(ui.month)) ui.month = S.months[S.months.length-1];
   opt(fMonth, S.months.slice().reverse().map(m=>[m,monthLabel(m)]), ui.month);
+  if(!ui.from || !S.months.includes(ui.from)) ui.from = fyStart(ui.month);
+  opt(fFrom, S.months.slice().reverse().map(m=>[m,monthLabel(m)]), ui.from);
+  $("fMode").value = ui.mode;
+  $("fFromWrap").hidden = $("fPresets").hidden = ui.mode!=="cum";
+  $("fMonthLbl").textContent = ui.mode==="cum"? "To" : "Month";
   opt(fLine, [["all","All lines"],...lines().map(l=>[l,l])], ui.line);
   opt(fVariant, [["all","All variants"],...S.variants.map(v=>[v.id,v.name])], ui.variant);
   opt(fRm, [["all","All raw materials"],...S.rms.map(r=>[r.id,r.name])], ui.rm);
   const parts=[]; if(ui.line!=="all")parts.push(ui.line); if(ui.variant!=="all")parts.push(vById(ui.variant)?.name); if(ui.rm!=="all")parts.push(rmById(ui.rm)?.name);
-  filterNote.textContent = parts.length? "Showing: "+parts.join(" · ") : "Showing the whole plant, all raw materials";
+  filterNote.textContent = (ui.mode==="cum"? "Cumulative "+periodLabel(true)+". " : "") + (parts.length? "Showing: "+parts.join(" · ") : "Whole plant, all raw materials");
 }
 const $ = id=>document.getElementById(id);
 const fMonth=$("fMonth"), fLine=$("fLine"), fVariant=$("fVariant"), fRm=$("fRm"), filterNote=$("filterNote");
-fMonth.onchange=e=>{ui.month=e.target.value;render();};
+fMonth.onchange=e=>{ui.month=e.target.value; if(ui.mode==="cum"&&ui.from>ui.month) ui.from=ui.month; render();};
+const fFrom=$("fFrom");
+fFrom.onchange=e=>{ui.from=e.target.value; if(ui.from>ui.month) ui.month=ui.from; render();};
+$("fMode").onchange=e=>{ui.mode=e.target.value; if(ui.mode==="cum") ui.from=fyStart(ui.month); render();};
+$("fPresets").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; const p=b.dataset.p; const last=S.months[S.months.length-1];
+  ui.month=last; ui.from = p==="fy"? fyStart(last) : S.months[Math.max(0,S.months.length-(+p))]; render();});
 fLine.onchange=e=>{ui.line=e.target.value;render();};
 fVariant.onchange=e=>{ui.variant=e.target.value;render();};
 fRm.onchange=e=>{ui.rm=e.target.value;render();};
 
 /* ---------- KPIs ---------- */
 function deltaHtml(cur, prev, lowerIsBetter, fmt){
-  if(!isFinite(cur)||!isFinite(prev)) return `<span class="delta flat">no prior month</span>`;
-  const d = cur-prev; if(Math.abs(d)<1e-9) return `<span class="delta flat">● flat vs last month</span>`;
+  if(!isFinite(cur)||!isFinite(prev)) return `<span class="delta flat">no prior period to compare</span>`;
+  const d = cur-prev; if(Math.abs(d)<1e-9) return `<span class="delta flat">● flat ${prevWord()}</span>`;
   const good = lowerIsBetter? d<0 : d>0;
-  return `<span class="delta ${good?"good":"bad"}">${d>0?"▲":"▼"} ${fmt(Math.abs(d))}</span> <span>vs last month</span>`;
+  return `<span class="delta ${good?"good":"bad"}">${d>0?"▲":"▼"} ${fmt(Math.abs(d))}</span> <span>${prevWord()}</span>`;
 }
 function renderKpis(){
-  const i = S.months.indexOf(ui.month), prevM = S.months[i-1];
-  const a = agg(rowsFor(ui.month)), p = prevM? agg(rowsFor(prevM)) : null;
+  const pr = prevPeriodRows();
+  const a = agg(rowsPeriod()), p = pr&&pr.length? agg(pr) : null;
   const P = k=>p?p[k]:NaN;
   const pp = x=>(x*100).toFixed(2)+" pts";
   const tiles = [
@@ -186,11 +215,13 @@ function renderKpis(){
 
 /* ---------- Production details (line cards) ---------- */
 function renderLines(){
-  $("prodMonthLbl").textContent = monthLabel(ui.month);
-  const rows = rowsFor(ui.month);
-  if(!rows.length){$("lineCards").innerHTML=`<div class="empty">No production for this filter in ${monthLabel(ui.month)}.</div>`;return;}
-  const html = rows.map(p=>{
-    const a = agg([p]); const v = vById(p.variant);
+  $("prodMonthLbl").textContent = periodLabel();
+  const all = rowsPeriod();
+  if(!all.length){$("lineCards").innerHTML=`<div class="empty">No production for this filter in ${periodLabel(true)}.</div>`;return;}
+  const groups = [...new Set(all.map(r=>r.line))].sort().map(ln=>{const rs=all.filter(r=>r.line===ln);
+    return {rs, line:ln, variants:[...new Set(rs.map(r=>r.variant))], planned:rs.reduce((s,r)=>s+r.planned,0), good:rs.reduce((s,r)=>s+r.good,0), rejected:rs.reduce((s,r)=>s+r.rejected,0)};});
+  const html = groups.map(p=>{
+    const a = agg(p.rs); const vname = p.variants.map(id=>vById(id)?.name||id).join(", ");
     const scrapPill = a.scrap>0.08?"crit":a.scrap>0.05?"warn":"good";
     const maxAct = Math.max(...rmList().map(id=>a.byRm[id].actual),1);
     const tr = rmList().map(id=>{
@@ -205,7 +236,7 @@ function renderLines(){
         <td class="hide-sm">${(wpp*1000).toFixed(1)} g</td>
       </tr>`;}).join("");
     return `<div class="line-card">
-      <div class="lc-head"><div><span class="ln">${esc(p.line)}</span> &nbsp;<span class="pn">${esc(v?v.name:p.variant)}</span></div>
+      <div class="lc-head"><div><span class="ln">${esc(p.line)}</span> &nbsp;<span class="pn">${esc(vname)}</span></div>
         <span class="pill ${scrapPill}">${scrapPill==="good"?"✓":"!"} Scrap ${pct(a.scrap)}</span></div>
       <div class="lc-stats">
         <div><div class="k">Planned</div><div class="v">${nf0.format(p.planned)}</div></div>
@@ -223,10 +254,12 @@ function renderLines(){
 
 /* ---------- Stock ---------- */
 function renderStock(){
-  $("stockMonthLbl").textContent = "Closing, "+monthLabel(ui.month);
-  const st = stockChain()[ui.month];
+  const pm = periodMonths(), ch = stockChain();
+  $("stockMonthLbl").textContent = pm.length>1? `${monthLabel(pm[0])} opening to ${monthLabel(pm[pm.length-1])} closing` : "Closing, "+monthLabel(ui.month);
   const rowsHtml = S.rms.map(rm=>{
-    const s = st[rm.id]; const dim = ui.rm!=="all"&&ui.rm!==rm.id;
+    const f=ch[pm[0]][rm.id], l=ch[pm[pm.length-1]][rm.id];
+    const s = {opening:f.opening, inward:pm.reduce((t,m)=>t+ch[m][rm.id].inward,0), consumed:pm.reduce((t,m)=>t+ch[m][rm.id].consumed,0), closing:l.closing, cover:l.cover};
+    const dim = ui.rm!=="all"&&ui.rm!==rm.id;
     const cv = s.cover; const lvl = !isFinite(cv)?"warn":cv<7?"crit":cv<15?"warn":"good";
     const txt = !isFinite(cv)?"-":cv<0?"Shortage":Math.round(cv)+" days";
     return `<tr class="${dim?"dim":""}">
@@ -258,13 +291,13 @@ function upsert(id, cfg){
 
 function renderSpc(){
   const s = spcSeries(); const labels = S.months.map(monthLabel);
-  const sel = S.months.indexOf(ui.month);
+  const inR = new Set(periodMonths().map(m=>S.months.indexOf(m)));
   const out = s.vals.map(v=>v!==null&&(v>s.usl||v<s.lsl));
   $("inUsl").value = s.usl.toFixed(1); $("inLsl").value = s.lsl.toFixed(1);
   upsert("chSpc",{type:"line",data:{labels,datasets:[
     {label:"Scrap %",data:s.vals,borderColor:"#2F5BA8",borderWidth:2,tension:0,
-      pointRadius:s.vals.map((v,i)=>out[i]?6:i===sel?5:3.5),
-      pointBackgroundColor:s.vals.map((v,i)=>out[i]?STATUS.crit:"#2F5BA8"),
+      pointRadius:s.vals.map((v,i)=>out[i]?6:inR.has(i)?5:3),
+      pointBackgroundColor:s.vals.map((v,i)=>out[i]?STATUS.crit:inR.has(i)?"#2F5BA8":"#B8C2D3"),
       pointBorderColor:"#fff",pointBorderWidth:2,pointHoverRadius:7,pointStyle:"circle"},
     {label:"USL",data:labels.map(()=>s.usl),borderColor:STATUS.crit,borderWidth:1.5,borderDash:[6,4],pointRadius:0,pointHoverRadius:0,pointStyle:"line"},
     {label:"Average",data:labels.map(()=>s.mean),borderColor:NEUTRAL,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,pointStyle:"line"},
@@ -277,47 +310,53 @@ function renderSpc(){
     (breaches.length? ` · <span style="color:${STATUS.crit};font-weight:700">⚠ Out of limits: ${breaches.join(", ")}</span>` : ` · <span style="color:${STATUS.good};font-weight:700">✓ All months within limits</span>`);
 }
 
+const cumOn = ()=> ui.mode==="cum" && periodMonths().length>1;
+function runSum(arr){let s=0;return arr.map(v=>s+=v);}
+function fade(hex,on){return on?hex:hex+"55";}
 function renderParts(){
-  const labels = S.months.map(monthLabel);
+  const cum=cumOn(), ms = cum? periodMonths() : S.months, labels = ms.map(monthLabel);
+  $("partsTitle").textContent = cum? "Produced parts, cumulative" : "Produced parts vs month";
   const ls = ui.line==="all"? lines() : [ui.line];
-  upsert("chParts",{type:"bar",data:{labels,datasets:ls.map(l=>({
-    label:l,data:S.months.map(m=>S.prod.filter(p=>p.month===m&&p.line===l&&(ui.variant==="all"||p.variant===ui.variant)).reduce((s,p)=>s+p.good,0)),
-    backgroundColor:LINE_COLORS[l]||SERIES[3],borderRadius:4,borderSkipped:"start",borderColor:"#fff",borderWidth:{left:1,right:1},maxBarThickness:18}))},
+  upsert("chParts",{type:"bar",data:{labels,datasets:ls.map(l=>{ const raw=ms.map(m=>S.prod.filter(p=>p.month===m&&p.line===l&&(ui.variant==="all"||p.variant===ui.variant)).reduce((s,p)=>s+p.good,0));
+    const c=LINE_COLORS[l]||SERIES[3];
+    return {label:l,data:cum?runSum(raw):raw,
+    backgroundColor:cum?c:ms.map(m=>fade(c,m===ui.month)),borderRadius:4,borderSkipped:"start",borderColor:"#fff",borderWidth:{left:1,right:1},maxBarThickness:cum?28:18};})},
     options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf0.format(c.parsed.y)} parts`}}},
       scales:{y:{grid:GRID,ticks:{callback:v=>v>=1e5?(v/1e5)+" L":nf0.format(v)}},x:{grid:NOGRID}}}});
 }
 
 function renderWaste(){
-  const labels = S.months.map(monthLabel);
-  upsert("chWaste",{type:"bar",data:{labels,datasets:rmList().map(id=>({
-    label:rmById(id).name,data:S.months.map(m=>agg(rowsFor(m)).byRm[id].waste),
-    backgroundColor:rmColor(id),borderColor:"#fff",borderWidth:{top:2},borderRadius:3,borderSkipped:false,maxBarThickness:22}))},
+  const cum=cumOn(), ms = cum? periodMonths() : S.months, labels = ms.map(monthLabel);
+  $("wasteTitle").textContent = cum? "Wastage kg by raw material, cumulative" : "Wastage kg by raw material";
+  upsert("chWaste",{type:"bar",data:{labels,datasets:rmList().map(id=>{const raw=ms.map(m=>agg(rowsFor(m)).byRm[id].waste); return {
+    label:rmById(id).name,data:cum?runSum(raw):raw,
+    backgroundColor:cum?rmColor(id):ms.map(m=>fade(rmColor(id),m===ui.month)),borderColor:"#fff",borderWidth:{top:2},borderRadius:3,borderSkipped:false,maxBarThickness:cum?32:22};})},
     options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:{mode:"index",intersect:false,callbacks:{label:c=>`${c.dataset.label}: ${nf0.format(c.parsed.y)} kg`}}},
       scales:{x:{stacked:true,grid:NOGRID},y:{stacked:true,grid:GRID,ticks:{callback:v=>nf0.format(v)}}}}});
 }
 
 function renderSva(){
-  $("svaLbl").textContent = monthLabel(ui.month);
-  const a = agg(rowsFor(ui.month)); const ids = rmList();
+  $("svaLbl").textContent = periodLabel(true);
+  const a = agg(rowsPeriod()); const ids = rmList();
   upsert("chSva",{type:"bar",data:{labels:ids.map(id=>rmById(id).name),datasets:[
     {label:"Set (standard)",data:ids.map(id=>a.byRm[id].set),backgroundColor:"#B8C2D3",borderRadius:4,borderSkipped:"start",maxBarThickness:16},
     {label:"Actual",data:ids.map(id=>a.byRm[id].actual),backgroundColor:ids.map(rmColor),borderRadius:4,borderSkipped:"start",maxBarThickness:16}
   ]},options:{indexAxis:"y",maintainAspectRatio:false,
     plugins:{legend:{position:"bottom",labels:{generateLabels:ch=>[{text:"Set (standard)",fillStyle:"#B8C2D3",strokeStyle:"#B8C2D3",borderRadius:3},{text:"Actual (RM colour)",fillStyle:"#2F5BA8",strokeStyle:"#2F5BA8",borderRadius:3}]}},
       tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf0.format(c.parsed.x)} kg`,afterBody:it=>{const id=ids[it[0].dataIndex];const b=a.byRm[id];return `Wastage: ${nf0.format(b.waste)} kg (${pct(b.waste/b.actual)})`;}}}},
-    scales:{x:{grid:GRID,ticks:{callback:v=>nf0.format(v)}},y:{grid:NOGRID}}}});
+    scales:{x:{grid:GRID,ticks:{maxTicksLimit:5,maxRotation:0,callback:v=>v>=1e5?(v/1e5).toFixed(0)+" L":nf0.format(v)}},y:{grid:NOGRID}}}});
 }
 
 /* ---------- AI insights ---------- */
 function linreg(ys){const n=ys.length;const xs=ys.map((_,i)=>i);const mx=(n-1)/2;const my=ys.reduce((s,y)=>s+y,0)/n;
   let num=0,den=0;xs.forEach((x,i)=>{num+=(x-mx)*(ys[i]-my);den+=(x-mx)**2;});const b=den?num/den:0;return {b,a:my-b*mx,n};}
 function renderInsights(){
-  const items=[]; const rows=rowsFor(ui.month); const s=spcSeries();
+  const items=[]; const rows=rowsPeriod(); const s=spcSeries(); const PW = periodMonths().length>1? "this period" : "this month";
   // 1 top driver
   let top=null;
-  rows.forEach(p=>{const a=agg([p]);rmList().forEach(id=>{const b=a.byRm[id];if(!top||b.cost>top.cost)top={line:p.line,variant:p.variant,id,cost:b.cost,waste:b.waste,share:b.waste/b.actual};});});
+  [...new Set(rows.map(r=>r.line))].forEach(ln=>{const rs=rows.filter(r=>r.line===ln);const a=agg(rs);const vs=[...new Set(rs.map(r=>r.variant))];rmList().forEach(id=>{const b=a.byRm[id];if(!top||b.cost>top.cost)top={line:ln,variant:vs.map(v=>vById(v)?.name||v).join(", "),id,cost:b.cost,waste:b.waste,share:b.waste/b.actual};});});
   const tot = agg(rows).cost;
-  if(top&&tot>0) items.push(["warn","!",`Top scrap driver: ${top.line}, ${rmById(top.id).name}`,`${kg(top.waste)} wasted (${pct(top.share)} of issue) on ${vById(top.variant)?.name||top.variant}, costing ${inr(top.cost)}. That is ${pct(top.cost/tot,0)} of this month's scrap cost.`]);
+  if(top&&tot>0) items.push(["warn","!",`Top scrap driver: ${top.line}, ${rmById(top.id).name}`,`${kg(top.waste)} wasted (${pct(top.share)} of issue) on ${top.variant}, costing ${inr(top.cost)}. That is ${pct(top.cost/tot,0)} of ${PW}'s scrap cost.`]);
   // 2 out of limits
   const br = s.vals.map((v,i)=>v!==null&&v>s.usl?i:-1).filter(i=>i>=0);
   if(br.length) items.push(["crit","⚠",`Out-of-control month${br.length>1?"s":""}: ${br.map(i=>monthLabel(S.months[i])).join(", ")}`,`Scrap went above the USL of ${s.usl.toFixed(2)}%. Peak ${Math.max(...br.map(i=>s.vals[i])).toFixed(2)}%. Check compound batch, mould flash and press settings for that period.`]);
@@ -332,12 +371,12 @@ function renderInsights(){
   S.rms.forEach(rm=>{const c=st[rm.id].cover; if(isFinite(c)&&c<10) items.push([c<5?"crit":"warn","!",`Low stock: ${rm.name}`,`${kg(st[rm.id].closing)} left, about ${Math.max(0,Math.round(c))} days of cover at the current run rate. Plan inward now.`]);
     else if(isFinite(c)&&c>45) items.push(["info","i",`Excess stock: ${rm.name}`,`${Math.round(c)} days of cover is tying up about ${inr(st[rm.id].closing*rate(rm.id))} in working capital.`]);});
   // 5 rejection
-  rows.forEach(p=>{const rr=p.rejected/(p.good+p.rejected); if(rr>0.03) items.push(["warn","!",`High rejection on ${p.line}`,`${pct(rr,2)} of ${vById(p.variant)?.name||p.variant} parts rejected (${nf0.format(p.rejected)} pcs). Every rejected part carries its full RM weight as scrap.`]);});
+  rows.forEach(p=>{const rr=p.rejected/(p.good+p.rejected); if(rr>0.03) items.push(["warn","!",`High rejection on ${p.line}, ${monthLabel(p.month)}`,`${pct(rr,2)} of ${vById(p.variant)?.name||p.variant} parts rejected (${nf0.format(p.rejected)} pcs). Every rejected part carries its full RM weight as scrap.`]);});
   // 5b metal recovery from NG parts
   const nRej = rows.reduce((s,p)=>s+p.rejected,0);
   const metalIds = S.rms.filter(r=>/sleeve|bracket|insert|metal/i.test(r.name)).map(r=>r.id);
   if(nRej>0 && metalIds.length){ let mkg=0,minr=0; rows.forEach(p=>{const v=vById(p.variant); metalIds.forEach(id=>{const k=p.rejected*((v&&v.std[id])||0); mkg+=k; minr+=k*rate(id);});});
-    items.push(["info","↺","Metal recoverable from NG parts",`${kg(mkg)} of sleeves and brackets sit inside ${nf0.format(nRej)} rejected parts. De-bonding and reusing them, instead of selling as scrap, is worth up to ${inr(minr)} this month.`]); }
+    items.push(["info","↺","Metal recoverable from NG parts",`${kg(mkg)} of sleeves and brackets sit inside ${nf0.format(nRej)} rejected parts. De-bonding and reusing them, instead of selling as scrap, is worth up to ${inr(minr)} ${PW}.`]); }
   // 6 opportunity
   const above = S.months.map(m=>agg(rowsFor(m))).filter(a=>a.scrap*100>s.mean);
   const save12 = above.reduce((acc,a)=>acc+(a.scrap-s.mean/100)*a.actual*(a.cost/(a.waste||1)),0);
@@ -349,16 +388,18 @@ function renderInsights(){
 function renderWhatIf(){
   $("wiWasteVal").textContent = ui.wiWaste+"%";
   $("wiPriceVal").textContent = (ui.wiPrice>0?"+":"")+ui.wiPrice+"%";
-  $("wiLbl").textContent = monthLabel(ui.month)+" basis";
-  const a = agg(rowsFor(ui.month)); const f = ui.wiWaste/100;
+  const n = periodMonths().length;
+  $("wiLbl").textContent = periodLabel(true)+" basis";
+  const a = agg(rowsPeriod()); const f = ui.wiWaste/100;
   const savedKg = a.waste*f, savedInr = a.cost*f;
   const newYield = a.actual? a.set/(a.actual-savedKg):NaN;
-  const yr = S.months.reduce((s,m)=>s+agg(rowsFor(m)).cost,0)*f;
+  const yr = savedInr*12/n;
+  const per = n>1? `in ${n} months` : "/ month";
   $("wiResults").innerHTML = `
-    <div><div class="k">RM saved / month</div><div class="v">${kg(savedKg)}</div></div>
-    <div><div class="k">Cost saved / month</div><div class="v">${inr(savedInr)}</div></div>
+    <div><div class="k">RM saved ${per}</div><div class="v">${kg(savedKg)}</div></div>
+    <div><div class="k">Cost saved ${per}</div><div class="v">${inr(savedInr)}</div></div>
     <div><div class="k">New material yield</div><div class="v">${pct(newYield)}</div></div>
-    <div class="hl"><div class="k">Annual saving (12 mo)</div><div class="v">${inr(yr)}</div></div>`;
+    <div class="hl"><div class="k">Annualised saving</div><div class="v">${inr(yr)}</div></div>`;
 }
 $("wiWaste").oninput=e=>{ui.wiWaste=+e.target.value;renderWhatIf();};
 $("wiPrice").oninput=e=>{ui.wiPrice=+e.target.value;render();};
@@ -367,7 +408,7 @@ $("wiPrice").oninput=e=>{ui.wiPrice=+e.target.value;render();};
 function renderTable(){
   if($("dataTable").hidden) return;
   const head = `<tr><th>Month</th><th>Line</th><th>Variant</th><th>Raw material</th><th>Good parts</th><th>Rejected</th><th>Set kg</th><th>Actual kg</th><th>Wastage kg</th><th>Scrap %</th><th>Scrap cost</th></tr>`;
-  const body = S.months.slice().reverse().flatMap(m=>rowsFor(m).flatMap(p=>{const a=agg([p]);return rmList().map(id=>{const b=a.byRm[id];
+  const body = periodMonths().slice().reverse().flatMap(m=>rowsFor(m).flatMap(p=>{const a=agg([p]);return rmList().map(id=>{const b=a.byRm[id];
     return `<tr><td>${monthLabel(m)}</td><td>${esc(p.line)}</td><td>${esc(vById(p.variant)?.name||p.variant)}</td><td>${esc(rmById(id).name)}</td><td>${nf0.format(p.good)}</td><td>${nf0.format(p.rejected)}</td><td>${nf1.format(b.set)}</td><td>${nf1.format(b.actual)}</td><td>${nf1.format(b.waste)}</td><td>${pct(b.waste/b.actual,2)}</td><td>${inr(b.cost)}</td></tr>`;});})).join("");
   $("dataTable").innerHTML = `<table class="data-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }

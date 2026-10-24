@@ -275,3 +275,6 @@ dialog h2{font-size:17px;color:var(--navy);margin-bottom:10px}
   .logo-pwt{height:20px} .logo-sct{height:18px}
   .client{border-left:none;padding:0}
 }
+.presets{display:flex;gap:4px;align-self:flex-end;flex-wrap:wrap}
+.presets button{border:1px solid #C9D3E0;background:var(--surface);color:var(--ink-2);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer}
+.presets button:hover{border-color:var(--navy);color:var(--navy)}
