@@ -364,11 +364,11 @@ function renderCompare(){
     return `<tr><th>${lbl}</th><td class="${ca}">${f(va)}${extra[0]}</td><td class="${cb}">${f(vb)}${extra[1]}</td><td class="lc-bar-cell">${bar}</td><td>${verdict}</td></tr>`;
   }).join("");
   const wins=rows.reduce((o,[,k,,hib])=>{ if(hib===null||hib===undefined) return o; const va=a[k],vb=b[k]; if(Math.abs(va-vb)<1e-9) return o; ((hib?va>vb:va<vb)?o[0]++:o[1]++); return o; },[0,0]);
-  $("lvCompare").innerHTML = `<div class="lc-score">
+  $("lvScore").innerHTML = `<div class="lc-score">
       <div style="--c:${LC[0]}"><b>${LINES[0].id}</b><span>${LINES[0].variant}</span><em>${wins[0]} of ${wins[0]+wins[1]} KPIs ahead</em></div>
       <div class="vs">vs</div>
-      <div style="--c:${LC[1]}"><b>${LINES[1].id}</b><span>${LINES[1].variant}</span><em>${wins[1]} of ${wins[0]+wins[1]} KPIs ahead</em></div></div>
-    <div class="table-wrap"><table class="lc-table"><thead><tr><th>KPI</th><th style="color:${LC[0]}">${LINES[0].id}</th><th style="color:${LC[1]}">${LINES[1].id}</th><th class="lc-bar-cell">Side by side</th><th>Who is ahead</th></tr></thead><tbody>${body}</tbody></table></div>`;
+      <div style="--c:${LC[1]}"><b>${LINES[1].id}</b><span>${LINES[1].variant}</span><em>${wins[1]} of ${wins[0]+wins[1]} KPIs ahead</em></div></div>`;
+  $("lvCompare").innerHTML = `<div class="table-wrap"><table class="lc-table"><thead><tr><th>KPI</th><th style="color:${LC[0]}">${LINES[0].id}</th><th style="color:${LC[1]}">${LINES[1].id}</th><th class="lc-bar-cell">Side by side</th><th>Who is ahead</th></tr></thead><tbody>${body}</tbody></table></div>`;
   // charts: NG % per 5 min and output per minute, both lines
   const e=curIdx(), nb=Math.floor(e/5)+1, l5=[], ngs=[[],[]];
   for(let k=0;k<nb;k++){ l5.push(hhmm(S.start+k*300000)); [0,1].forEach(i=>{ let g=0,n=0; for(let m=k*5;m<Math.min(k*5+5,e+1);m++){ g+=S.lines[i].minGo[m]; n+=S.lines[i].minNg[m]; } ngs[i].push(g+n? n/(g+n)*100 : null); }); }
