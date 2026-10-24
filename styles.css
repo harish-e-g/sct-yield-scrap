@@ -260,3 +260,18 @@ dialog h2{font-size:17px;color:var(--navy);margin-bottom:10px}
 .lv-line.sel{border-color:var(--navy);box-shadow:0 0 0 2px rgba(10,31,68,.12)}
 .lines .lv-line:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .kpi .val{transition:color .3s}
+
+/* Brand header with logos */
+.demo-ribbon{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;background:var(--gold);color:var(--navy);padding:7px 20px;font-size:12.8px;text-align:center}
+.demo-ribbon b{letter-spacing:.1em;background:var(--navy);color:var(--gold);padding:2px 9px;border-radius:4px;font-size:11.5px}
+.topbar .brand{gap:4px}
+.logo-pwt{height:26px;width:auto;display:block}
+.logo-sct{height:24px;width:auto;display:block}
+.client{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 14px;border-left:1px solid rgba(255,255,255,.18)}
+.client-lbl{font-size:10.5px;color:#B9C4D8;text-transform:uppercase;letter-spacing:.1em}
+.demo-tag{display:inline-block;vertical-align:middle;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--gold);color:var(--navy);padding:2px 8px;border-radius:999px;margin-left:6px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;box-shadow:0 10px 30px rgba(10,31,68,.3);z-index:40}
+@media (max-width:640px){
+  .logo-pwt{height:20px} .logo-sct{height:18px}
+  .client{border-left:none;padding:0}
+}

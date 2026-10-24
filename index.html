@@ -2,23 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="build" content="20261024121247">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yield & Scrap Dashboard</title>
-<meta name="description" content="AI-induced Yield and Scrap Management dashboard prepared by Prowesstics for Sujan ContiTech, Pune.">
-<link rel="stylesheet" href="styles.css">
-<script src="lib/chart.umd.min.js"></script>
-<script src="lib/xlsx.full.min.js"></script>
+<meta name="description" content="AI-induced Yield and Scrap Management dashboard prepared by Prowesstics for Sujan Continental, Pune.">
+<link rel="stylesheet" href="styles.css?v=20261024121247">
+<script src="lib/chart.umd.min.js?v=20261024121247"></script>
+<script src="lib/xlsx.full.min.js?v=20261024121247"></script>
 </head>
 <body>
 
+<div class="demo-ribbon" role="note">
+  <b>DEMO DASHBOARD</b>
+  <span>Caution: all figures are simulated for illustration only. This page is not connected to Sujan Continental systems and does not show actual plant data.</span>
+</div>
+
 <header class="topbar">
   <div class="brand">
-    <div class="wordmark">PROWESSTICS</div>
+    <img src="assets/prowesstics-logo.png?v=20261024121247" alt="Prowesstics" class="logo-pwt" width="640" height="83">
     <div class="brand-sub">ProVision AI</div>
   </div>
   <div class="title-block">
-    <h1>Yield &amp; Scrap Management</h1>
-    <p>Sujan ContiTech, Pune &nbsp;|&nbsp; Raw material consumption, wastage and stock</p>
+    <h1>Yield &amp; Scrap Management <span class="demo-tag">Demo</span></h1>
+    <p>Raw material consumption, wastage and stock &nbsp;|&nbsp; Pune plant</p>
+  </div>
+  <div class="client">
+    <span class="client-lbl">Prepared for</span>
+    <img src="assets/sujan-continental-logo.png?v=20261024121247" alt="Sujan Continental" class="logo-sct" width="640" height="81">
   </div>
   <div class="top-actions">
     <button class="btn ghost" id="btnInputs" aria-controls="drawer">Edit inputs</button>
@@ -101,6 +112,7 @@
         <ul class="events" id="lvEvents"></ul>
       </div>
     </section>
+    <footer class="foot">DEMO DASHBOARD. Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan Continental, Pune, for discussion only. All figures are simulated and illustrative.</footer>
   </main>
 </div>
 
@@ -200,7 +212,7 @@
   </section>
 
   <footer class="foot">
-    Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan ContiTech, Pune. Demo data for discussion; figures are illustrative.
+    DEMO DASHBOARD. Prepared by Prowesstics IT Services Pvt. Ltd. for Sujan Continental, Pune, for discussion only. All figures are simulated and illustrative. Build <span id="buildId"></span>.
   </footer>
 </main>
 </div>
@@ -237,7 +249,9 @@
   <div class="dlg-actions end"><button class="btn ghost" id="btnDlgClose">Close</button></div>
 </dialog>
 
-<script src="app.js"></script>
-<script src="live.js"></script>
+<script src="app.js?v=20261024121247"></script>
+<script src="live.js?v=20261024121247"></script>
+<div class="toast" id="toast" hidden></div>
+<script src="refresh.js?v=20261024121247"></script>
 </body>
 </html>

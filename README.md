@@ -1,6 +1,6 @@
 # Yield & Scrap Management Dashboard
 
-Prepared by Prowesstics for Sujan ContiTech, Pune.
+Prepared by Prowesstics for Sujan Continental, Pune.
 
 Live: https://harish-e-g.github.io/sct-yield-scrap/
 

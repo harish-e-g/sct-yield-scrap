@@ -30,7 +30,8 @@ const C = {go:"#2F5BA8", ng:"#C93A3A", good:"#1E8E5A", warn:"#B7791F", neutral:"
 /* ---------- Helpers ---------- */
 const $ = id=>document.getElementById(id);
 const nf = new Intl.NumberFormat("en-IN",{maximumFractionDigits:0});
-const rand = Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let rand = Math.random;   // re-seeded per shift so every viewer and every refresh sees the same numbers
 function poisson(l){ if(l<=0) return 0; const L=Math.exp(-l); let k=0,p=1; do{k++;p*=rand();}while(p>L); return k-1; }
 function pickReason(){ const tot=REASONS.reduce((s,r)=>s+r[1],0); let x=rand()*tot; for(let i=0;i<REASONS.length;i++){x-=REASONS[i][1]; if(x<=0) return i;} return 0; }
 const IST = 5.5*3600*1000;
@@ -55,6 +56,7 @@ const events = [];
 
 function newShift(){
   const sh = shiftOf(simMs);
+  rand = mulberry32(Math.floor(sh.start/1000) ^ 0x5C7);
   S = {name:sh.name, start:sh.start, end:sh.start+SHIFT_SEC*1000, sec:0,
     lines: LINES.map(()=>({go:0, ng:0, minGo:new Array(480).fill(0), minNg:new Array(480).fill(0), reasons:new Array(REASONS.length).fill(0),
       exc:null, stop:null, alerted:false, sGo:new Uint32Array(5760), sNg:new Uint32Array(5760),
