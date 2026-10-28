@@ -285,10 +285,10 @@ function renderStock(){
     return `<tr class="${dim?"dim":""}">
       <td><span class="rm-name sub">${esc(rm.name)}</span></td>
       <td class="hide-sm">${nf0.format(s.opening)}</td><td class="hide-sm">${nf0.format(s.inward)}</td><td>${nf0.format(s.consumed)}</td>
-      <td class="big">${kg(s.closing)}</td>
+      <td class="big">${nf0.format(Math.round(s.closing))}</td>
       <td><span class="pill ${lvl}">${lvl==="good"?"✓ ":lvl==="idle"?"":"! "}${txt}</span></td></tr>`;
   }).join(""); }).join("");
-  $("stockTable").innerHTML = `<div class="table-wrap"><table class="stock-table"><thead><tr><th>Raw material</th><th class="hide-sm">Opening</th><th class="hide-sm">Inward</th><th>Consumed</th><th>Available</th><th>Cover</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
+  $("stockTable").innerHTML = `<div class="table-wrap"><table class="stock-table rm-stock"><thead><tr><th>Raw material <span class="unit">(kg)</span></th><th class="hide-sm">Opening</th><th class="hide-sm">Inward</th><th>Consumed</th><th>Available</th><th>Cover</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
 }
 
 /* ---------- Charts ---------- */
@@ -483,10 +483,10 @@ function renderMaster(){
     return `<tr class="grp-row"><td colspan="6"><span class="sw" style="background:${g.color}"></span> ${esc(g.name)} <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">${esc(g.note||"")}</span></td></tr>`+
       ids.map(id=>{const rm=rmById(id), m=AVS.RMS.find(x=>x.id===id);
         const share = rec[id]!=null? `${rec[id]} phr (${(rec[id]/tot*100).toFixed(1)}% of compound)` : "";
-        return `<tr><td><span class="rm-name sub">${esc(rm.name)}</span></td><td>${share||"-"}</td><td>₹${nf0.format(rm.rate)}</td>
-          <td>${m?`${(m.loss[0]*100).toFixed(m.loss[0]<0.1?1:0)} to ${(m.loss[1]*100).toFixed(m.loss[1]<0.1?1:0)}%`:"-"}</td><td class="left">${esc(m?m.why:"")}</td>
+        return `<tr><td><span class="rm-name sub">${esc(rm.name)}</span></td><td class="hide-sm">${share||"-"}</td><td>₹${nf0.format(rm.rate)}</td>
+          <td>${m?`${(m.loss[0]*100).toFixed(m.loss[0]<0.1?1:0)} to ${(m.loss[1]*100).toFixed(m.loss[1]<0.1?1:0)}%`:"-"}</td><td class="left hide-sm">${esc(m?m.why:"")}</td>
           <td><span class="pill ${m&&m.src==="S"?"good":"warn"}">${m&&m.src==="S"?"Sourced":"Estimated"}</span></td></tr>`;}).join(""); }).join("");
-  $("rmMaster").innerHTML = `<table class="stock-table master"><thead><tr><th>Material</th><th>Recipe share</th><th>₹ / kg</th><th>Typical loss</th><th class="left">Where it is lost</th><th>Basis</th></tr></thead><tbody>${rows}</tbody></table>
+  $("rmMaster").innerHTML = `<table class="stock-table master"><thead><tr><th>Material</th><th class="hide-sm">Recipe share</th><th>₹ / kg</th><th>Typical loss</th><th class="left hide-sm">Where it is lost</th><th>Basis</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="chart-foot">Compound recipe follows a standard NR anti-vibration mount formulation (80/20 NR/SBR). Whether Sujan Continental mixes compound in-house or buys it in is not public; if bought in, the polymer and chemical rows combine into one compound line. Prices are indicative Indian market levels for 2024-26. Metal inserts, plastic housings and bonding agent are tracked in kg here; plants often track inserts in pieces.</p>`;
 }
 
