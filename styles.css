@@ -408,3 +408,4 @@ b,strong,th,h1,h2,h3{font-weight:600}
   .stock-table.master th,.stock-table.master td{padding:6px 4px;font-size:12px}
 }
 @media (max-width:900px){ .lc-bar-cell{display:none} }
+@media (max-width:900px){ .lc-table th,.lc-table td{white-space:normal;padding:7px 6px} .lc-pill{white-space:normal} }
