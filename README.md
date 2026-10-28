@@ -2,7 +2,7 @@
 
 Prepared by Prowesstics for Sujan Continental, Pune.
 
-Live: https://harish-e-g.github.io/sct-yield-scrap/
+Live: https://harish-e-g.github.io/sct-yield-scrap-dashboard/
 
 ## Views
 - **Live shift**: simulated real-time feed of GO / NG parts (about 1,00,000 parts per shift across Line 1 and Line 2, ticking every second), run rate vs target, NG % against USL 3.5%, NG reason Pareto, live RM consumption and scrap cost, AI live insights and an event log. Speed control 1x / 10x / 60x. In production the feed comes from press counters, weighing scales and ProVision AI cameras.
